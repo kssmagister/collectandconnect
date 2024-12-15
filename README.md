@@ -9,9 +9,10 @@ A secure feedback collection and management system. This web application allows 
   - Category selection (Auswahl)
   - Text input for detailed feedback
   - Automatic timestamp recording
-![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/input.png)
+![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/login.png)
 - **Admin Panel**
   - Secure login system
+    ![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/input.png)
   - View all entries in a tabular format
   - Download data in multiple formats:
     - CSV export for complete dataset
