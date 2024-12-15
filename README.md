@@ -36,7 +36,7 @@ A secure feedback collection and management system. This web application allows 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/kss-feedback.git
+git clone https://github.com/kssmagister/collectandconnect.git
 ```
 
 2. Copy `.env.example` to `.env` and configure your database settings:
@@ -156,9 +156,3 @@ The system is designed to be easily maintainable and updatable. Follow these ste
 This project is licensed under the GNU General Public License v3.0. You are free to use, modify, and distribute this software under the terms of the license. However, any derivative works must also be licensed under the GPL.
 
 For more details, refer to the full license text included in the LICENSE file or visit [https://www.gnu.org/licenses/gpl-3.0.html](https://www.gnu.org/licenses/gpl-3.0.html).
-
-## 👥 Contact
-
-For support or queries, please contact:
-- System Administrator: [admin@kss.ch](mailto:admin@kss.ch)
-- Technical Support: [support@kss.ch](mailto:support@kss.ch)
