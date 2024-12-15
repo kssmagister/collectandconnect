@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="de">
+    <head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>KSS COLLECT & CONNECT</title>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    </head>
+    <body class="container mt-5">
+	<div class="d-flex justify-content-between">
+            <h1>KSS COLLECT & CONNECT</h1>
+	    <button type="button" id="clearDBBtn" class="btn btn-warning" style="display:none; margin-right:10px;">Clear DB</button>
+	    <button type="button" id="logoutBtn" class="btn btn-danger" style="display:none; margin-right:10px;">Logout</button>
+	    <button type="button" id="downloadBtn" class="btn btn-secondary" style="display:none;">Download</button>
+	</div>
+	
+	<!-- Anmeldeformular -->
+	<div id="inputForm">
+            <form id="memorandaForm">
+		<div class="form-group">
+                  <label for="auswahl">Auswahl:</label>
+		  <select class="form-control" id="auswahl" name="auswahl">
+		      <optgroup label="FMS">
+			<option>1FMS</option>
+			<option>2FMS</option>
+			<option>3FMS</option>
+		      </optgroup>
+		      <optgroup label="GYM-G">
+			<option>1GYM-G</option>
+			<option>2GYM-G</option>
+			<option>3GYM-G</option>
+			<option>4GYM-G</option>
+		      </optgroup>
+		      <optgroup label="WMS/IMS">
+			<option>1WMS/IMS</option>
+			<option>2WMS/IMS</option>
+			<option>3WMS/IMS</option>
+		      </optgroup>
+		      <optgroup label="Sonstige">
+			<option>LatInt</option>
+			<option>efG</option>
+			<option>ffGR</option>
+			<option>EXTRA</option>
+		      </optgroup>
+		    </select>
+		</div>
+
+		<div class="form-group">
+                    <label for="texteingabe">Texteingabe:</label>
+                    <textarea class="form-control" id="texteingabe" name="texteingabe" rows="6"></textarea>
+		</div>
+
+		<button type="button" id="sendData" class="btn btn-primary">Send Data</button>
+            </form>
+	</div>
+	
+	<!-- Liste der Eingaben -->
+	<ul id="entryList" class="list-group mt-4" style="display:none;"></ul>
+
+	<script>
+         // Überprüfen Sie, ob der Benutzer eingeloggt ist
+	 $(document).ready(function() {
+	     $.get('checkLogin.php', function(response) {
+		 if (response.loggedIn) {
+		     $('#inputForm').hide();
+		     $('#downloadBtn, #logoutBtn, #clearDBBtn').show();  // Zeigt alle drei Buttons an
+		     loadEntries();
+		 }
+	     }, 'json');
+	 });
+
+	 // Clear DB Button-Event
+	 $('#clearDBBtn').on('click', function() {
+	     if (confirm("Sind Sie sicher, dass Sie alle Daten in der Datenbank löschen möchten? Dies kann nicht rückgängig gemacht werden.")) {
+		 $.get('clearDB.php', function(response) {
+		     if (response.success) {
+			 alert("Datenbank erfolgreich geleert!");
+			 location.reload(); // Aktualisiert die Seite
+		     } else {
+			 alert("Fehler beim Löschen der Daten: " + response.message);
+		     }
+		 }, 'json');
+	     }
+	 });
+
+
+	 
+         function loadEntries() {
+             $.get('getEntries.php', function(entries) {
+                 $('#entryList').empty().show();
+                 entries.forEach(entry => {
+                     $('#entryList').append(`<li class="list-group-item">${entry.texteingabe}</li>`);
+                 });
+             }, 'json');
+         }
+
+         // Send Data Button-Event
+         $('#sendData').on('click', function() {
+             let formData = {
+                 auswahl: $('#auswahl').val(),
+                 texteingabe: $('#texteingabe').val()
+             };
+
+             $.post('submit.php', formData, function(response) {
+                 if (response.success) {
+                     alert("Daten erfolgreich gespeichert!");
+                     $('#texteingabe').val('');
+                     loadEntries();
+                 } else {
+                     alert("Fehler beim Speichern der Daten: " + response.message);
+                 }
+             }, 'json');
+         });
+
+         // Download-Button-Event
+         $('#downloadBtn').on('click', function() {
+             window.location.href = 'download.php';
+         });
+
+         // Logout, wenn das Fenster geschlossen wird
+         //window.addEventListener("beforeunload", function() {
+         //    navigator.sendBeacon('logout.php');
+         //});
+
+	 // Logout-Button-Event
+	 $('#logoutBtn').on('click', function() {
+	     $.ajax({
+		 url: 'logout.php',
+		 type: 'GET',
+		 success: function() {
+		     alert("Erfolgreich ausgeloggt!");
+		     window.location.reload(); // Aktualisiert die Seite
+		 },
+		 error: function() {
+		     alert("Fehler beim Abmelden!");
+		 }
+	     });
+	 });
+
+	</script>
+	
+	<footer class="mt-5 text-center">
+	    &copy; 2024 Daniel Rutz. Alle Rechte vorbehalten.
+	</footer>
+    </body>
+</html>
