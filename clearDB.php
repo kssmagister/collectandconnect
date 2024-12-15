@@ -1,36 +1,29 @@
 <?php
 session_start();
+require_once 'config.php';
 
-$response = array("success" => false, "message" => "Unbekannter Fehler");
+header('Content-Type: application/json');
 
-// Überprüfen Sie, ob der Benutzer eingeloggt ist
-if (!isset($_SESSION['loggedIn']) || !$_SESSION['loggedIn']) {
-    $response["message"] = "Sie sind nicht eingeloggt.";
-    echo json_encode($response);
+// Check if user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
 }
 
-include 'db_config.php';
-// Verbindung erstellen
 $conn = new mysqli($servername, $username, $password, $dbname);
-//$conn = mysqli_connect($servername, $username, $password, $dbname);
 
-
-if (!$conn) {
-    $response["message"] = "Verbindung zur Datenbank fehlgeschlagen: " . mysqli_connect_error();
-    echo json_encode($response);
+if ($conn->connect_error) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $conn->connect_error]);
     exit;
 }
 
 $sql = "DELETE FROM memoranda";
 
-if (mysqli_query($conn, $sql)) {
-    $response["success"] = true;
-    $response["message"] = "Daten erfolgreich gelöscht.";
+if ($conn->query($sql)) {
+    echo json_encode(['success' => true, 'message' => 'Database cleared successfully']);
 } else {
-    $response["message"] = "Fehler beim Löschen der Daten: " . mysqli_error($conn);
+    echo json_encode(['success' => false, 'message' => 'Error clearing database: ' . $conn->error]);
 }
 
-mysqli_close($conn);
-echo json_encode($response);
+$conn->close();
 ?>
