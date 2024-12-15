@@ -117,12 +117,26 @@
         // Clear database
         $('#clearBtn').click(function() {
             if (confirm('Are you sure you want to clear the database? This cannot be undone!')) {
-                $.post('clearDB.php', function(response) {
-                    if (response.success) {
-                        alert('Database cleared successfully');
-                        loadEntries();
-                    } else {
-                        alert('Error clearing database');
+                $.ajax({
+                    url: 'clearDB.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Database cleared successfully');
+                            loadEntries();
+                        } else {
+                            alert('Error: ' + response.message);
+                            if (response.message === 'Not logged in') {
+                                window.location.href = 'login.html';
+                            }
+                        }
+                    },
+                    error: function() {
+                        alert('Error connecting to server');
                     }
                 });
             }

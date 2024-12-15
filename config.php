@@ -1,4 +1,9 @@
 <?php
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 function loadEnv() {
     $envFile = __DIR__ . '/.env';
     if (!file_exists($envFile)) {
@@ -16,6 +21,11 @@ function loadEnv() {
         }
     }
 }
+
+// Set session cookie parameters for better security
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 0); // Set to 1 if using HTTPS
 
 // Load environment variables
 loadEnv();

@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once 'config.php';
+require_once 'config.php'; // This will handle session start
 
 header('Content-Type: application/json');
 
