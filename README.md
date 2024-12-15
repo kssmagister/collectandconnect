@@ -9,7 +9,7 @@ A secure feedback collection and management system. This web application allows 
   - Category selection (Auswahl)
   - Text input for detailed feedback
   - Automatic timestamp recording
-
+![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/input.png)
 - **Admin Panel**
   - Secure login system
   - View all entries in a tabular format
@@ -18,13 +18,13 @@ A secure feedback collection and management system. This web application allows 
     - Text export for feedback entries
   - Database management tools
   - Real-time data refresh
-
+![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/admin.png)
 - **Public View Page**
   - Clean, card-based layout
   - Easy-to-read format
   - Automatic refresh every 5 minutes
   - Mobile-responsive design
-
+![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/view.png)
 ## 📋 Prerequisites
 
 - PHP 7.0 or higher
