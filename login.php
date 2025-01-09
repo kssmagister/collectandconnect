@@ -2,8 +2,8 @@
 session_start();
 require_once 'config.php';
 
-$adminUsername = "admin";
-$adminPassword = "Theoderich007!";
+$adminUsername = "xxx";
+$adminPassword = "xxx";
 
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
