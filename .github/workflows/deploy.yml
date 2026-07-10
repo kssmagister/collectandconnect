@@ -1,0 +1,47 @@
+name: Deploy to FTP
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'migrations/**'
+      - 'README.md'
+      - 'LICENSE'
+      - 'img/**'
+
+  # Manuelles Deployment ueber die GitHub-UI / gh workflow run
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # fuer Diff-basiertes Upload
+
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./
+          server-dir: ./collectandconnect/
+          # Dev-/Doku-Dateien nicht auf den Webserver laden.
+          # .env ist ohnehin nicht im Repo (gitignored) und wird nie angefasst.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            migrations/**
+            README.md
+            LICENSE
+            img/**
+            .env
+            .env.example
+            .gitignore
