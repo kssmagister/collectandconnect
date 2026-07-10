@@ -16,7 +16,7 @@ if ($conn->connect_error) {
     exit;
 }
 
-$sql = "DELETE FROM memoranda";
+$sql = "DELETE FROM memoranda_structured";
 
 if ($conn->query($sql)) {
     echo json_encode(['success' => true, 'message' => 'Database cleared successfully']);

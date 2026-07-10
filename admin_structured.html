@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KSS Admin - Strukturierte Antworten</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            padding: 1rem 0;
+            font-size: 14px;
+        }
+        .container-fluid {
+            max-width: 1200px;
+        }
+        .header-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #495057;
+            margin-bottom: 0.25rem;
+        }
+        .entry-card {
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .entry-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .nickname-badge {
+            background-color: #495057;
+            color: white;
+            padding: 0.3rem 0.7rem;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .class-badge {
+            background-color: #6c757d;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-right: 0.5rem;
+        }
+        .timestamp {
+            color: #999;
+            font-size: 11px;
+        }
+        .field-section {
+            margin-bottom: 0.6rem;
+        }
+        .field-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.2rem;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .field-content {
+            background-color: #fafafa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border-left: 2px solid #dee2e6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            color: #333;
+        }
+        .stats-card {
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        .stat-item {
+            text-align: center;
+            padding: 0.5rem;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            color: #999;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filter-section {
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        h5 {
+            font-size: 1rem;
+            color: #495057;
+            margin-bottom: 0.75rem;
+        }
+        .form-control {
+            font-size: 13px;
+            padding: 0.4rem 0.6rem;
+        }
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        .btn {
+            font-size: 13px;
+            padding: 0.4rem 0.8rem;
+        }
+        .btn-filter {
+            background-color: #495057;
+            color: white;
+            border: none;
+        }
+        .btn-filter:hover {
+            background-color: #383d42;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-info {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+        }
+        .no-entries {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+        .no-entries h4 {
+            font-size: 1.1rem;
+            color: #6c757d;
+        }
+        .text-muted {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>Strukturierte Antworten - Admin</h1>
+                    <p class="text-muted mb-0">Übersicht aller Schülerantworten</p>
+                </div>
+                <div>
+                    <button id="exportCSV" class="btn btn-success">CSV Export</button>
+                    <button id="exportJSON" class="btn btn-info">JSON Export</button>
+                    <button id="clearBtn" class="btn btn-warning">Clear DB</button>
+                    <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiken -->
+        <div class="stats-card">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalEntries">0</div>
+                        <div class="stat-label">Gesamt</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalNicknames">0</div>
+                        <div class="stat-label">Schüler</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalClasses">0</div>
+                        <div class="stat-label">Klassen</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number" id="avgLength">0</div>
+                        <div class="stat-label">Ø Zeichen</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter -->
+        <div class="filter-section">
+            <h5>Filter & Sortierung</h5>
+            <form id="filterForm">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="filterClass">Klasse</label>
+                            <select class="form-control" id="filterClass">
+                                <option value="">Alle Klassen</option>
+                                <optgroup label="FMS">
+                                    <option>1FMS</option>
+                                    <option>2FMS</option>
+                                    <option>3FMS</option>
+                                </optgroup>
+                                <optgroup label="GYM-G">
+                                    <option>1GYM-G</option>
+                                    <option>2GYM-G</option>
+                                    <option>3GYM-G</option>
+                                    <option>4GYM-G</option>
+                                </optgroup>
+                                <optgroup label="WMS/IMS">
+                                    <option>1WMS/IMS</option>
+                                    <option>2WMS/IMS</option>
+                                    <option>3WMS/IMS</option>
+                                </optgroup>
+                                <optgroup label="Sonstige">
+                                    <option>LatInt</option>
+                                    <option>efG</option>
+                                    <option>ffGR</option>
+                                    <option>EXTRA</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="filterNickname">Nickname</label>
+                            <input type="text" class="form-control" id="filterNickname" placeholder="Suchen...">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="sortOrder">Sortierung</label>
+                            <select class="form-control" id="sortOrder">
+                                <option value="desc">Neueste zuerst</option>
+                                <option value="asc">Älteste zuerst</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-filter btn-block">Filter anwenden</button>
+            </form>
+        </div>
+
+        <!-- Einträge -->
+        <div id="entriesContainer">
+            <div class="text-center">
+                <div class="spinner-border text-secondary" role="status">
+                    <span class="sr-only">Lädt...</span>
+                </div>
+                <p class="mt-2 text-muted">Daten werden geladen...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allEntries = [];
+
+        // Login-Wache: nicht eingeloggte Besucher zur Login-Seite schicken
+        $.get('check_login.php', function(response) {
+            if (!response.loggedin) { window.location.href = 'login.html'; }
+        }, 'json');
+
+        // Logout
+        $('#logoutBtn').on('click', function() {
+            $.post('logout.php', function() { window.location.href = 'login.html'; });
+        });
+
+        // Daten laden
+        function loadEntries() {
+            const filterClass = $('#filterClass').val();
+            const filterNickname = $('#filterNickname').val();
+            const sortOrder = $('#sortOrder').val();
+
+            let url = 'getEntries_structured.php?';
+            if (filterClass) url += 'class=' + encodeURIComponent(filterClass) + '&';
+            if (filterNickname) url += 'nickname=' + encodeURIComponent(filterNickname) + '&';
+            url += 'sort=' + sortOrder;
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        allEntries = response.data;
+                        displayEntries(allEntries);
+                        updateStatistics(allEntries);
+                    } else {
+                        $('#entriesContainer').html('<div class="alert alert-danger">Fehler: ' + response.message + '</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#entriesContainer').html('<div class="alert alert-danger">Fehler beim Laden der Daten: ' + error + '</div>');
+                    console.error('Error:', error);
+                }
+            });
+        }
+
+        // Einträge anzeigen
+        function displayEntries(entries) {
+            const container = $('#entriesContainer');
+            container.empty();
+
+            if (entries.length === 0) {
+                container.html('<div class="no-entries"><h4>Keine Einträge gefunden</h4><p>Es gibt noch keine Antworten oder deine Filter passen auf keinen Eintrag.</p></div>');
+                return;
+            }
+
+            entries.forEach(function(entry) {
+                const card = $('<div class="entry-card">');
+                
+                // Header
+                const header = $('<div class="entry-header">');
+                header.append('<div><span class="nickname-badge">' + escapeHtml(entry.nickname) + '</span></div>');
+                header.append('<div><span class="class-badge">' + escapeHtml(entry.auswahl) + '</span> <span class="timestamp">' + formatDate(entry.timestamp) + '</span></div>');
+                card.append(header);
+
+                // Was
+                if (entry.was) {
+                    const wasSection = $('<div class="field-section">');
+                    wasSection.append('<div class="field-label">Was</div>');
+                    wasSection.append('<div class="field-content">' + escapeHtml(entry.was) + '</div>');
+                    card.append(wasSection);
+                }
+
+                // Wann
+                if (entry.wann) {
+                    const wannSection = $('<div class="field-section">');
+                    wannSection.append('<div class="field-label">Wann</div>');
+                    wannSection.append('<div class="field-content">' + escapeHtml(entry.wann) + '</div>');
+                    card.append(wannSection);
+                }
+
+                // Warum
+                if (entry.warum) {
+                    const warumSection = $('<div class="field-section">');
+                    warumSection.append('<div class="field-label">Warum</div>');
+                    warumSection.append('<div class="field-content">' + escapeHtml(entry.warum) + '</div>');
+                    card.append(warumSection);
+                }
+
+                // Folgen
+                if (entry.folgen) {
+                    const folgenSection = $('<div class="field-section">');
+                    folgenSection.append('<div class="field-label">Folgen</div>');
+                    folgenSection.append('<div class="field-content">' + escapeHtml(entry.folgen) + '</div>');
+                    card.append(folgenSection);
+                }
+
+                // Beispiel
+                if (entry.beispiel && entry.beispiel.trim() !== '') {
+                    const beispielSection = $('<div class="field-section">');
+                    beispielSection.append('<div class="field-label">Beispiel/Quelle</div>');
+                    beispielSection.append('<div class="field-content">' + escapeHtml(entry.beispiel) + '</div>');
+                    card.append(beispielSection);
+                }
+
+                container.append(card);
+            });
+        }
+
+        // Statistiken berechnen
+        function updateStatistics(entries) {
+            $('#totalEntries').text(entries.length);
+
+            const uniqueNicknames = new Set(entries.map(e => e.nickname));
+            $('#totalNicknames').text(uniqueNicknames.size);
+
+            const uniqueClasses = new Set(entries.map(e => e.auswahl));
+            $('#totalClasses').text(uniqueClasses.size);
+
+            const totalLength = entries.reduce((sum, entry) => {
+                return sum + (entry.was || '').length + (entry.wann || '').length + (entry.warum || '').length + (entry.folgen || '').length;
+            }, 0);
+            const avgLength = entries.length > 0 ? Math.round(totalLength / entries.length) : 0;
+            $('#avgLength').text(avgLength);
+        }
+
+        // Datum formatieren
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('de-DE', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: '2-digit',
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        // HTML escapen
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.toString().replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // CSV Export
+        $('#exportCSV').on('click', function() {
+            if (allEntries.length === 0) {
+                alert('Keine Daten zum Exportieren vorhanden!');
+                return;
+            }
+
+            let csv = 'ID;Nickname;Klasse;Was;Wann;Warum;Folgen;Beispiel;Zeitstempel\n';
+            
+            allEntries.forEach(function(entry) {
+                csv += entry.id + ';';
+                csv += '"' + (entry.nickname || '').replace(/"/g, '""') + '";';
+                csv += '"' + (entry.auswahl || '').replace(/"/g, '""') + '";';
+                csv += '"' + (entry.was || '').replace(/"/g, '""') + '";';
+                csv += '"' + (entry.wann || '').replace(/"/g, '""') + '";';
+                csv += '"' + (entry.warum || '').replace(/"/g, '""') + '";';
+                csv += '"' + (entry.folgen || '').replace(/"/g, '""') + '";';
+                csv += '"' + (entry.beispiel || '').replace(/"/g, '""') + '";';
+                csv += '"' + entry.timestamp + '"\n';
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'strukturierte_antworten_' + new Date().toISOString().slice(0,10) + '.csv';
+            link.click();
+        });
+
+        // JSON Export
+        $('#exportJSON').on('click', function() {
+            if (allEntries.length === 0) {
+                alert('Keine Daten zum Exportieren vorhanden!');
+                return;
+            }
+
+            const json = JSON.stringify(allEntries, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'strukturierte_antworten_' + new Date().toISOString().slice(0,10) + '.json';
+            link.click();
+        });
+
+        // Filter-Formular
+        $('#filterForm').on('submit', function(e) {
+            e.preventDefault();
+            loadEntries();
+        });
+
+        // Initial laden
+        $(document).ready(function() {
+            loadEntries();
+        });
+
+        $('#clearBtn').click(function() {
+            if(confirm('Alle Daten löschen?')) {
+                $.post('clearDB_memoranda_structured.php', {}, resp=>{
+                    if(resp.success){ alert("DB geleert"); loadEntries();}
+                    else { alert("Fehler: "+resp.message); }
+                },'json');
+            }
+        });
+    </script>
+</body>
+</html>

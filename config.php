@@ -25,7 +25,7 @@ function loadEnv() {
 // Set session cookie parameters for better security
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Set to 1 if using HTTPS
+ini_set('session.cookie_secure', 1); // Live laeuft ueber HTTPS
 
 // Load environment variables
 loadEnv();
@@ -48,24 +48,11 @@ foreach ($required_vars as $var) {
     }
 }
 
-// Add error reporting for database connection
+// Fehler protokollieren statt an den Client ausgeben (kein Info-Leak in Produktion)
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
-// Test database connection
-function testDatabaseConnection() {
-    global $servername, $username, $password, $dbname;
-    
-    $conn = @new mysqli($servername, $username, $password, $dbname);
-    
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error . 
-            "\nServer: " . $servername .
-            "\nDatabase: " . $dbname .
-            "\nUser: " . $username);
-    }
-    return $conn;
-}
-
-// Test the connection when config is loaded
-testDatabaseConnection();
+// Hinweis: Die eigentliche DB-Verbindung wird pro Endpunkt bei Bedarf aufgebaut.
+// Frueher wurde hier zusaetzlich bei JEDEM Include eine Test-Verbindung geoeffnet
+// (und nie geschlossen) - das war unnoetiger Overhead und wurde entfernt.

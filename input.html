@@ -1,38 +1,170 @@
 <!DOCTYPE html>
 <html lang="de">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>KSS COLLECT & CONNECT</title>
-        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-        <style>
-            .admin-button {
-                position: fixed;
-                bottom: 2rem;
-                right: 2rem;
-                z-index: 1000;
-                padding: 0.5rem 1rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-        </style>
-    </head>
-    <body class="container mt-5">
-        <div class="d-flex justify-content-between">
-            <h1>KSS COLLECT & CONNECT</h1>
-            <button type="button" id="clearDBBtn" class="btn btn-warning" style="display:none; margin-right:10px;">Clear DB</button>
-            <button type="button" id="logoutBtn" class="btn btn-danger" style="display:none; margin-right:10px;">Logout</button>
-            <button type="button" id="downloadBtn" class="btn btn-secondary" style="display:none;">Download</button>
-        </div>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KSS COLLECT & CONNECT</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            max-width: 800px;
+        }
+        .admin-button {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            padding: 0.4rem 0.8rem;
+            font-size: 13px;
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: white;
+        }
+        .admin-button:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+            color: white;
+        }
+        .form-section {
+            background-color: #fafafa;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border-left: 3px solid #6c757d;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.3rem;
+        }
+        .required-label::after {
+            content: " *";
+            color: #dc3545;
+        }
+        .form-control {
+            font-size: 14px;
+            padding: 0.4rem 0.6rem;
+        }
+        .form-control:focus {
+            border-color: #6c757d;
+            box-shadow: 0 0 0 0.1rem rgba(108, 117, 125, 0.25);
+        }
+        textarea.form-control {
+            resize: vertical;
+        }
+        .char-counter {
+            font-size: 11px;
+            color: #999;
+            float: right;
+            margin-top: 2px;
+        }
+        .char-counter.sufficient {
+            color: #28a745;
+        }
+        h1 {
+            color: #495057;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        h5 {
+            font-size: 1rem;
+            color: #495057;
+            margin-bottom: 0.8rem;
+        }
+        .text-muted {
+            font-size: 13px;
+        }
+        .form-text {
+            font-size: 12px;
+            margin-top: 0.2rem;
+        }
+        .btn-primary {
+            background-color: #495057;
+            border-color: #495057;
+            padding: 0.6rem;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background-color: #383d42;
+            border-color: #383d42;
+        }
+        .alert-info {
+            border-left: 3px solid #17a2b8;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 13px;
+        }
+        .btn-outline-info {
+            font-size: 12px;
+            padding: 0.25rem 0.5rem;
+        }
+        #tipps ul {
+            font-size: 12px;
+            margin-bottom: 0;
+            padding-left: 1.25rem;
+        }
+        #tipps ul li {
+            margin-bottom: 0.25rem;
+        }
+        footer {
+            text-align: center;
+            color: #6c757d;
+            margin-top: 1.5rem;
+            padding: 0.75rem;
+            font-size: 12px;
+        }
+        select.form-control option {
+            font-size: 13px;
+        }
+        optgroup {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KSS COLLECT & CONNECT</h1>
+        <p class="text-center text-muted mb-3">Strukturierte Antworterfassung</p>
         
-        <!-- Anmeldeformular -->
         <div id="inputForm">
-            <form id="memorandaForm">
+            <form id="collectForm">
+                <!-- Nickname -->
                 <div class="form-group">
-                    <label for="auswahl">Auswahl:</label>
-                    <select class="form-control" id="auswahl" name="auswahl">
+                    <label for="nickname" class="required-label">Dein persönlicher Nickname</label>
+                    <input type="text" class="form-control" id="nickname" name="nickname" 
+                           placeholder="z.B. Löwe23, Stern42, Phoenix99" required>
+                    <small class="form-text text-muted">
+                        Dieser Name hilft dir, dein Feedback später wiederzufinden.
+                    </small>
+                </div>
+
+                <!-- Auswahl (Klasse) -->
+                <div class="form-group">
+                    <label for="auswahl" class="required-label">Klasse</label>
+                    <select class="form-control" id="auswahl" name="auswahl" required>
+                        <option value="">-- Bitte wählen --</option>
                         <optgroup label="FMS">
                             <option>1FMS</option>
                             <option>2FMS</option>
@@ -58,107 +190,156 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="texteingabe">Texteingabe:</label>
-                    <textarea class="form-control" id="texteingabe" name="texteingabe" rows="6"></textarea>
+                <!-- Strukturierte Antwortfelder -->
+                <div class="form-section">
+                    <h5>Deine strukturierte Antwort</h5>
+                    
+                    <!-- Was -->
+                    <div class="form-group">
+                        <label for="was" class="required-label">Was ist passiert?</label>
+                        <textarea class="form-control" id="was" name="was" rows="2" 
+                                  placeholder="Ereignis/Thema kurz beschreiben..." required></textarea>
+                        <small class="form-text char-counter" id="wasCounter">0 Zeichen</small>
+                    </div>
+
+                    <!-- Wann -->
+                    <div class="form-group">
+                        <label for="wann" class="required-label">Wann war das?</label>
+                        <input type="text" class="form-control" id="wann" name="wann" 
+                               placeholder="Zeitraum, Epoche, Jahrhundert" required>
+                    </div>
+
+                    <!-- Warum -->
+                    <div class="form-group">
+                        <label for="warum" class="required-label">Warum ist das passiert?</label>
+                        <textarea class="form-control" id="warum" name="warum" rows="2" 
+                                  placeholder="Gründe und Ursachen erklären..." required></textarea>
+                        <small class="form-text char-counter" id="warumCounter">0 Zeichen</small>
+                    </div>
+
+                    <!-- Folgen -->
+                    <div class="form-group">
+                        <label for="folgen" class="required-label">Welche Folgen hatte das?</label>
+                        <textarea class="form-control" id="folgen" name="folgen" rows="2" 
+                                  placeholder="Kurz- und langfristige Folgen..." required></textarea>
+                        <small class="form-text char-counter" id="folgenCounter">0 Zeichen</small>
+                    </div>
+
+                    <!-- Beispiel (optional) -->
+                    <div class="form-group">
+                        <label for="beispiel">Beispiel oder Quelle (optional)</label>
+                        <textarea class="form-control" id="beispiel" name="beispiel" rows="2" 
+                                  placeholder="Konkrete Beispiele oder Quellenangaben..."></textarea>
+                    </div>
                 </div>
 
-                <button type="button" id="sendData" class="btn btn-primary">Send Data</button>
+                <!-- Tipps ausklappbar -->
+                <div class="alert alert-info">
+                    <button type="button" class="btn btn-sm btn-outline-info" data-toggle="collapse" data-target="#tipps">
+                        Tipps anzeigen
+                    </button>
+                    <div id="tipps" class="collapse mt-2">
+                        <strong>Checkliste für eine gute Antwort:</strong>
+                        <ul class="mt-1">
+                            <li>Verwende Fachbegriffe aus dem Unterricht</li>
+                            <li>Erkläre was, warum und welche Folgen</li>
+                            <li>Nenne konkrete Zeitangaben</li>
+                            <li>Begründe mit "weil", "aufgrund", "daher"</li>
+                            <li>Nutze Beispiele oder Quellen</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button type="submit" id="sendData" class="btn btn-primary btn-block">
+                    Antwort absenden
+                </button>
             </form>
         </div>
-        
-        <!-- Liste der Eingaben -->
-        <ul id="entryList" class="list-group mt-4" style="display:none;"></ul>
+    </div>
 
-        <!-- Admin Login Button -->
-        <a href="login.html" class="btn btn-info admin-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16">
-                <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-            </svg>
-            Admin Login
-        </a>
+    <!-- Admin Login Button -->
+    <a href="login.html" class="btn admin-button">
+        Admin
+    </a>
 
-        <script>
-            // Überprüfen Sie, ob der Benutzer eingeloggt ist
-            $(document).ready(function() {
-                $.get('checkLogin.php', function(response) {
-                    if (response.loggedIn) {
-                        $('#inputForm').hide();
-                        $('#downloadBtn, #logoutBtn, #clearDBBtn').show();
-                        loadEntries();
-                    }
-                }, 'json');
-            });
+    <footer>
+        © 2025 Daniel Rutz. Alle Rechte vorbehalten.
+    </footer>
 
-            // Clear DB Button-Event
-            $('#clearDBBtn').on('click', function() {
-                if (confirm("Sind Sie sicher, dass Sie alle Daten in der Datenbank löschen möchten? Dies kann nicht rückgängig gemacht werden.")) {
-                    $.get('clearDB.php', function(response) {
-                        if (response.success) {
-                            alert("Datenbank erfolgreich geleert!");
-                            location.reload(); // Aktualisiert die Seite
-                        } else {
-                            alert("Fehler beim Löschen der Daten: " + response.message);
-                        }
-                    }, 'json');
+    <script>
+        // Zeichenzähler für Textfelder
+        function updateCharCounter(textareaId, counterId, minChars = 0) {
+            const textarea = $('#' + textareaId);
+            const counter = $('#' + counterId);
+            
+            textarea.on('input', function() {
+                const length = $(this).val().length;
+                let text = length + ' Zeichen';
+                
+                if (minChars > 0 && length >= minChars) {
+                    counter.addClass('sufficient');
+                } else {
+                    counter.removeClass('sufficient');
                 }
+                
+                counter.text(text);
             });
+        }
 
-            function loadEntries() {
-                $.get('getEntries.php', function(entries) {
-                    $('#entryList').empty().show();
-                    entries.forEach(entry => {
-                        $('#entryList').append(`<li class="list-group-item">${entry.texteingabe}</li>`);
-                    });
-                }, 'json');
+        // Zeichenzähler initialisieren
+        updateCharCounter('was', 'wasCounter');
+        updateCharCounter('warum', 'warumCounter', 50);
+        updateCharCounter('folgen', 'folgenCounter', 50);
+
+        // Formular absenden
+        $('#collectForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = $('#sendData');
+            const originalText = submitBtn.html();
+            submitBtn.prop('disabled', true).html('Wird gesendet...');
+            
+            let formData = {
+                nickname: $('#nickname').val().trim(),
+                auswahl: $('#auswahl').val(),
+                was: $('#was').val().trim(),
+                wann: $('#wann').val().trim(),
+                warum: $('#warum').val().trim(),
+                folgen: $('#folgen').val().trim(),
+                beispiel: $('#beispiel').val().trim()
+            };
+
+            if (!formData.nickname || !formData.auswahl || !formData.was || 
+                !formData.wann || !formData.warum || !formData.folgen) {
+                alert("Bitte fülle alle Pflichtfelder (*) aus!");
+                submitBtn.prop('disabled', false).html(originalText);
+                return;
             }
 
-            // Send Data Button-Event
-            $('#sendData').on('click', function() {
-                let formData = {
-                    auswahl: $('#auswahl').val(),
-                    texteingabe: $('#texteingabe').val()
-                };
-
-                $.post('submit.php', formData, function(response) {
+            $.ajax({
+                url: 'submit_collect.php',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
                     if (response.success) {
-                        alert("Daten erfolgreich gespeichert!");
-                        $('#texteingabe').val('');
-                        loadEntries();
+                        alert("Erfolgreich gespeichert!\n\nDu kannst dein Feedback später mit deinem Nickname '" + formData.nickname + "' abrufen.");
+                        $('#collectForm')[0].reset();
+                        $('.char-counter').text('0 Zeichen').removeClass('sufficient');
+                        $('#tipps').collapse('hide');
                     } else {
-                        alert("Fehler beim Speichern der Daten: " + response.message);
+                        alert("Fehler beim Speichern:\n" + (response.message || 'Unbekannter Fehler'));
                     }
-                }, 'json');
+                    submitBtn.prop('disabled', false).html(originalText);
+                },
+                error: function(xhr, status, error) {
+                    alert("Fehler beim Verbinden mit dem Server.\n\nBitte versuche es erneut oder kontaktiere deinen Lehrer.");
+                    console.error('AJAX Error:', error);
+                    console.error('Response:', xhr.responseText);
+                    submitBtn.prop('disabled', false).html(originalText);
+                }
             });
-
-            // Download-Button-Event
-            $('#downloadBtn').on('click', function() {
-                window.location.href = 'download.php';
-            });
-
-            // Logout, wenn das Fenster geschlossen wird
-            //window.addEventListener("beforeunload", function() {
-            //    navigator.sendBeacon('logout.php');
-            //});
-
-            // Logout-Button-Event
-            $('#logoutBtn').on('click', function() {
-                $.ajax({
-                    url: 'logout.php',
-                    type: 'GET',
-                    success: function() {
-                        alert("Erfolgreich ausgeloggt!");
-                        window.location.reload(); // Aktualisiert die Seite
-                    },
-                    error: function() {
-                        alert("Fehler beim Abmelden!");
-                    }
-                });
-            });
-        </script>
-        
-        <footer class="mt-5 text-center">
-            &copy; 2024 Daniel Rutz. Alle Rechte vorbehalten.
-        </footer>
-    </body>
+        });
+    </script>
+</body>
 </html>

@@ -1,0 +1,10 @@
+# Direktzugriff auf sensible Dateien verbieten (.env, Beispiel-Configs, Git-Metadaten)
+<FilesMatch "(^\.env|\.env\..*|\.gitignore|\.htaccess|composer\.(json|lock))$">
+    Require all denied
+</FilesMatch>
+
+# .git-Verzeichnis komplett sperren
+RedirectMatch 404 /\.git
+
+# Kein Directory-Listing
+Options -Indexes

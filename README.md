@@ -1,159 +1,109 @@
 # COLLECT & CONNECT
 
-A secure feedback collection and management system. This web application allows for easy submission of feedback entries and provides a secure admin interface for managing and viewing the collected data.
+A lightweight feedback / structured-answer collection tool for school classes.
+Students submit a structured answer (Nickname + class + *Was / Wann / Warum / Folgen / Beispiel*);
+teachers review, filter and export the entries through a password-protected admin panel.
+
+> **Note:** The original free-text version (`memoranda` table) has been retired.
+> The app now uses the structured system (`memoranda_structured`) exclusively.
 
 ## 🚀 Features
 
-- **Feedback Submission**
-  - Simple and intuitive input form
-  - Category selection (Auswahl)
-  - Text input for detailed feedback
-  - Automatic timestamp recording
-![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/input.png)
-- **Admin Panel**
-  - Secure login system
-![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/login.png)
-  - View all entries in a tabular format
-  - Download data in multiple formats:
-    - CSV export for complete dataset
-    - Text export for feedback entries
-  - Database management tools
-  - Real-time data refresh
-![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/admin.png)
-- **Public View Page**
-  - Clean, card-based layout
-  - Easy-to-read format
-  - Automatic refresh every 5 minutes
-  - Mobile-responsive design
-![input](https://raw.githubusercontent.com/kssmagister/collectandconnect/main/img/view.png)
+- **Structured submission** (`input.html` → `submit_collect.php`)
+  - Nickname + class selection
+  - Guided fields: *Was / Wann / Warum / Folgen* (+ optional *Beispiel/Quelle*)
+  - Character counters and inline tips
+- **Admin panel** (`admin_structured.html`)
+  - Session-based login (credentials from `.env`)
+  - Filter by class / nickname, sort by date
+  - Statistics (entries, students, classes, avg. length)
+  - CSV / JSON export, clear database
+- **Machine API** (`api_structured_data.php`)
+  - Read-only JSON endpoint for external tools (e.g. a Python analysis script)
+  - Authenticated via `X-API-Key` **header** (from `.env`)
+
 ## 📋 Prerequisites
 
-- PHP 7.0 or higher
-- MySQL/MariaDB database
-- Web server (Apache/Nginx)
-- SSL certificate (recommended for production)
+- PHP 8+ with the `mysqli` extension
+- MySQL / MariaDB
+- Apache (the included `.htaccess` protects `.env` and blocks directory listing)
+- HTTPS in production (session cookies are set with the `Secure` flag)
 
 ## 🔧 Installation
 
 1. Clone the repository:
-```bash
-git clone https://github.com/kssmagister/collectandconnect.git
-```
+   ```bash
+   git clone https://github.com/kssmagister/collectandconnect.git
+   ```
+2. Create your `.env` from the template and fill in real values:
+   ```bash
+   cp .env.example .env
+   ```
+   ```env
+   DB_HOST=your_database_host
+   DB_NAME=your_database_name
+   DB_USER=your_database_user
+   DB_PASSWORD=your_database_password
 
-2. Copy `.env.example` to `.env` and configure your database settings:
-```bash
-cp .env.example .env
-```
+   ADMIN_USERNAME=your_admin_username
+   ADMIN_PASSWORD=your_admin_password
 
-3. Update the `.env` file with your credentials:
-```env
-DB_HOST=your_database_host
-DB_NAME=your_database_name
-DB_USER=your_database_user
-DB_PASSWORD=your_database_password
-
-ADMIN_USERNAME=your_admin_username
-ADMIN_PASSWORD=your_admin_password
-```
-
-4. Set up the database schema:
-```sql
-CREATE TABLE memoranda (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    auswahl VARCHAR(255) NOT NULL,
-    texteingabe TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-5. Ensure proper file permissions:
-```bash
-chmod 644 .env
-chmod 755 *.php
-chmod 755 *.html
-```
-
-## 🔒 Security Features
-
-- Environment-based configuration
-- Session-based authentication
-- SQL injection prevention
-- XSS protection
-- CSRF protection
-- Secure password handling
+   PYTHON_API_KEY=your_api_key      # only if you use api_structured_data.php
+   ```
+   > `.env` is git-ignored and additionally blocked from web access via `.htaccess`.
+   > **Never commit real credentials.**
+3. Create the database table:
+   ```sql
+   CREATE TABLE memoranda_structured (
+       id        INT AUTO_INCREMENT PRIMARY KEY,
+       nickname  VARCHAR(100) NOT NULL,
+       auswahl   VARCHAR(50)  NOT NULL,   -- class
+       was       TEXT,
+       wann      VARCHAR(255),
+       warum     TEXT,
+       folgen    TEXT,
+       beispiel  TEXT,
+       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+   ```
 
 ## 📁 Project Structure
 
 ```
-feedback-forms/
-├── .env                 # Environment configuration
-├── .env.example        # Example environment file
-├── .gitignore         # Git ignore rules
-├── admin.html         # Admin interface
-├── view.html          # Public view interface
-├── input.html         # Feedback submission form
-├── login.html         # Admin login page
-├── config.php         # Configuration loader
-├── submit.php         # Form submission handler
-├── login.php          # Authentication handler
-├── getEntries.php     # Data retrieval script
-├── download.php       # CSV export handler
-├── download_text.php  # Text export handler
-├── clearDB.php        # Database cleanup handler
-└── README.md          # Project documentation
+collectandconnect/
+├── .env.example                     # Template for environment config
+├── .gitignore
+├── .htaccess                        # Protects .env, blocks listing
+├── config.php                       # Loads .env, session + DB settings
+├── input.html                       # Public structured submission form
+├── submit_collect.php               # Stores a submission (prepared statement)
+├── login.html / login.php           # Admin login (credentials from .env)
+├── logout.php / check_login.php     # Session helpers
+├── admin_structured.html            # Admin dashboard (filter, stats, export)
+├── getEntries_structured.php        # Data endpoint (login-protected)
+├── clearDB_memoranda_structured.php # Wipes the table (login-protected)
+├── api_structured_data.php          # API-key protected JSON endpoint
+├── img/                             # Screenshots (may be outdated)
+├── LICENSE
+└── README.md
 ```
 
-## 🌐 Page Overview
+## 🔒 Security notes
 
-- `input.html`: Public feedback submission form
-- `login.html`: Admin authentication page
-- `admin.html`: Secure admin dashboard
-- `view.html`: Public feedback display page
+Implemented:
+- Environment-based configuration; `.env` git-ignored and `.htaccess`-blocked
+- All SQL via prepared statements (`mysqli`)
+- Admin credentials compared with `hash_equals`; session id regenerated on login
+- Output in the admin panel is HTML-escaped (XSS)
+- Data endpoints require an authenticated session; API endpoint requires a header key
+- Errors are logged, not displayed to the client
 
-## 💻 Usage
-
-1. **Submitting Feedback**
-   - Navigate to `input.html`
-   - Select a category from the dropdown
-   - Enter your feedback text
-   - Submit the form
-
-2. **Accessing Admin Panel**
-   - Go to `login.html`
-   - Enter admin credentials
-   - Access the full admin dashboard
-
-3. **Viewing Feedback**
-   - Visit `view.html` for a clean, public view
-   - No authentication required
-   - Automatically refreshes every 5 minutes
-
-## 🔐 Admin Features
-
-- View all feedback entries
-- Download data in CSV format
-- Download text entries separately
-- Clear database when needed
-- Navigate between admin and view interfaces
-
-## 🛠️ Maintenance
-
-- Regularly backup your database
-- Update admin credentials periodically
-- Monitor disk space for log files
-- Check error logs for issues
-
-## 🔄 Updates
-
-The system is designed to be easily maintainable and updatable. Follow these steps for updates:
-
-1. Pull the latest changes
-2. Check `.env.example` for new variables
-3. Update your `.env` file if needed
-4. Clear browser cache
+Still recommended (see project notes):
+- Hash the admin password instead of storing it in `.env` as plaintext
+- Add CSRF tokens to state-changing POSTs (login, clear-DB)
+- Add rate limiting / lockout on the login endpoint
 
 ## 📝 License
 
-This project is licensed under the GNU General Public License v3.0. You are free to use, modify, and distribute this software under the terms of the license. However, any derivative works must also be licensed under the GPL.
-
-For more details, refer to the full license text included in the LICENSE file or visit [https://www.gnu.org/licenses/gpl-3.0.html](https://www.gnu.org/licenses/gpl-3.0.html).
+GNU General Public License v3.0 — see [LICENSE](LICENSE) or
+<https://www.gnu.org/licenses/gpl-3.0.html>.
