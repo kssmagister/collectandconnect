@@ -40,7 +40,7 @@
       $.post('login.php',{
         username:$('#username').val(), password:$('#password').val()
       }, function(resp){
-        if(resp.success){ window.location.href='admin_structured.html'; }
+        if(resp.success){ window.location.href='admin.html'; }
         else { alert("Login fehlgeschlagen: "+resp.message); }
       },'json');
     });

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strukturierte Antwort – KSS COLLECT &amp; CONNECT</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/style.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Strukturierte Antwort</h1>
+    <p class="text-center text-muted mb-3">Beantworte das Thema mit Was, Wann, Warum und Folgen.</p>
+
+    <form id="strukturiertForm">
+      <div class="form-group">
+        <label for="klasse" class="required-label">Klasse</label>
+        <select class="form-control" id="klasse" required>
+          <option value="">-- Klasse wählen --</option>
+          <optgroup label="FMS"><option>1FMS</option><option>2FMS</option><option>3FMS</option></optgroup>
+          <optgroup label="GYM-G"><option>1GYM-G</option><option>2GYM-G</option><option>3GYM-G</option><option>4GYM-G</option></optgroup>
+          <optgroup label="WMS/IMS"><option>1WMS/IMS</option><option>2WMS/IMS</option><option>3WMS/IMS</option></optgroup>
+          <optgroup label="Sonstige"><option>LatInt</option><option>efG</option><option>ffGR</option><option>EXTRA</option></optgroup>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="nickname">Nickname <span class="text-muted">(optional)</span></label>
+        <input type="text" class="form-control" id="nickname" placeholder="freiwillig">
+      </div>
+
+      <div class="form-section">
+        <h5>Deine strukturierte Antwort</h5>
+
+        <div class="form-group">
+          <label for="was" class="required-label">Was ist passiert?</label>
+          <textarea class="form-control" id="was" rows="2" placeholder="Ereignis/Thema kurz beschreiben..." required></textarea>
+          <small class="form-text char-counter" id="wasCounter">0 Zeichen</small>
+        </div>
+
+        <div class="form-group">
+          <label for="wann" class="required-label">Wann war das?</label>
+          <input type="text" class="form-control" id="wann" placeholder="Zeitraum, Epoche, Jahrhundert" required>
+        </div>
+
+        <div class="form-group">
+          <label for="warum" class="required-label">Warum ist das passiert?</label>
+          <textarea class="form-control" id="warum" rows="2" placeholder="Gründe und Ursachen erklären..." required></textarea>
+          <small class="form-text char-counter" id="warumCounter">0 Zeichen</small>
+        </div>
+
+        <div class="form-group">
+          <label for="folgen" class="required-label">Welche Folgen hatte das?</label>
+          <textarea class="form-control" id="folgen" rows="2" placeholder="Kurz- und langfristige Folgen..." required></textarea>
+          <small class="form-text char-counter" id="folgenCounter">0 Zeichen</small>
+        </div>
+
+        <div class="form-group mb-0">
+          <label for="beispiel">Beispiel oder Quelle <span class="text-muted">(optional)</span></label>
+          <textarea class="form-control" id="beispiel" rows="2" placeholder="Konkrete Beispiele oder Quellenangaben..."></textarea>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <button type="button" class="btn btn-sm btn-outline-info" data-toggle="collapse" data-target="#tipps">Tipps anzeigen</button>
+        <div id="tipps" class="collapse mt-2">
+          <strong>Checkliste für eine gute Antwort:</strong>
+          <ul class="mt-1 mb-0" style="font-size:12px;">
+            <li>Verwende Fachbegriffe aus dem Unterricht</li>
+            <li>Erkläre was, warum und welche Folgen</li>
+            <li>Nenne konkrete Zeitangaben</li>
+            <li>Begründe mit "weil", "aufgrund", "daher"</li>
+            <li>Nutze Beispiele oder Quellen</li>
+          </ul>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">Antwort absenden</button>
+    </form>
+  </div>
+
+  <a href="index.html" class="btn admin-button">← Zurück</a>
+  <footer>© 2025 Daniel Rutz. Alle Rechte vorbehalten.</footer>
+
+  <script>
+    function counter(id, cid, min) {
+      $('#' + id).on('input', function() {
+        const len = $(this).val().length;
+        $('#' + cid).text(len + ' Zeichen').toggleClass('sufficient', min > 0 && len >= min);
+      });
+    }
+    counter('was', 'wasCounter', 0);
+    counter('warum', 'warumCounter', 50);
+    counter('folgen', 'folgenCounter', 50);
+
+    $('#strukturiertForm').on('submit', function(e) {
+      e.preventDefault();
+      const data = {
+        form_type: 'strukturiert',
+        klasse: $('#klasse').val(),
+        nickname: $('#nickname').val().trim(),
+        was: $('#was').val().trim(),
+        wann: $('#wann').val().trim(),
+        warum: $('#warum').val().trim(),
+        folgen: $('#folgen').val().trim(),
+        beispiel: $('#beispiel').val().trim()
+      };
+      if (!data.klasse || !data.was || !data.wann || !data.warum || !data.folgen) {
+        alert('Bitte Klasse und alle Pflichtfelder (*) ausfüllen.');
+        return;
+      }
+
+      const btn = $(this).find('button[type="submit"]');
+      btn.prop('disabled', true).text('Wird gesendet...');
+
+      $.post('submit.php', data, null, 'json')
+        .done(function(resp) {
+          if (resp.success) {
+            alert('Danke! Deine Antwort wurde gespeichert.');
+            $('#strukturiertForm')[0].reset();
+            $('.char-counter').text('0 Zeichen').removeClass('sufficient');
+            $('#tipps').collapse('hide');
+          } else {
+            alert('Fehler: ' + (resp.message || 'Unbekannter Fehler'));
+          }
+        })
+        .fail(function() { alert('Verbindung zum Server fehlgeschlagen. Bitte erneut versuchen.'); })
+        .always(function() { btn.prop('disabled', false).text('Antwort absenden'); });
+    });
+  </script>
+</body>
+</html>

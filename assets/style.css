@@ -1,0 +1,171 @@
+/* Gemeinsames Design fuer alle COLLECT & CONNECT Seiten */
+body {
+    background-color: #f5f5f5;
+    min-height: 100vh;
+    font-size: 14px;
+}
+.container {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    max-width: 700px;
+}
+h1 {
+    color: #495057;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+h5 {
+    font-size: 1rem;
+    color: #495057;
+    margin-bottom: 0.8rem;
+}
+label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.3rem;
+}
+.required-label::after {
+    content: " *";
+    color: #dc3545;
+}
+.form-control {
+    font-size: 14px;
+    padding: 0.4rem 0.6rem;
+}
+.form-control:focus {
+    border-color: #6c757d;
+    box-shadow: 0 0 0 0.1rem rgba(108, 117, 125, 0.25);
+}
+textarea.form-control {
+    resize: vertical;
+}
+.form-section {
+    background-color: #fafafa;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    border-left: 3px solid #6c757d;
+}
+.char-counter {
+    font-size: 11px;
+    color: #999;
+    float: right;
+    margin-top: 2px;
+}
+.char-counter.sufficient {
+    color: #28a745;
+}
+optgroup {
+    font-weight: 600;
+}
+.btn-primary {
+    background-color: #495057;
+    border-color: #495057;
+    padding: 0.6rem;
+    font-size: 14px;
+    font-weight: 600;
+}
+.btn-primary:hover {
+    background-color: #383d42;
+    border-color: #383d42;
+}
+.admin-button {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    padding: 0.4rem 0.8rem;
+    font-size: 13px;
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+}
+.admin-button:hover {
+    background-color: #5a6268;
+    color: #fff;
+}
+footer {
+    text-align: center;
+    color: #6c757d;
+    margin-top: 1.5rem;
+    padding: 0.75rem;
+    font-size: 12px;
+}
+
+/* ---- Landing Page ---- */
+.choice-card {
+    display: block;
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #495057;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.choice-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
+    color: inherit;
+}
+.choice-card .choice-icon {
+    font-size: 1.6rem;
+    margin-right: 0.5rem;
+}
+.choice-card .choice-title {
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1rem;
+}
+.choice-card .choice-desc {
+    color: #6c757d;
+    font-size: 13px;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+}
+
+/* ---- Sicherheits-Skala (Exit-Ticket) ---- */
+.scale-options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.scale-options input[type="radio"] {
+    display: none;
+}
+.scale-options label {
+    flex: 1 1 0;
+    min-width: 90px;
+    text-align: center;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 0.5rem 0.25rem;
+    cursor: pointer;
+    margin-bottom: 0;
+    font-weight: 500;
+    transition: all 0.12s;
+}
+.scale-options label .scale-num {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #495057;
+}
+.scale-options input[type="radio"]:checked + label {
+    background-color: #495057;
+    border-color: #495057;
+    color: #fff;
+}
+.scale-options input[type="radio"]:checked + label .scale-num {
+    color: #fff;
+}

@@ -1,109 +1,110 @@
 # COLLECT & CONNECT
 
 A lightweight feedback / structured-answer collection tool for school classes.
-Students submit a structured answer (Nickname + class + *Was / Wann / Warum / Folgen / Beispiel*);
-teachers review, filter and export the entries through a password-protected admin panel.
+Students open a landing page, pick the form the teacher announced, and submit their answer.
+Teachers review, filter, analyse and export everything through a password-protected admin panel.
+An API endpoint lets an external machine (e.g. a home server running an AI analysis) pull the data.
 
-> **Note:** The original free-text version (`memoranda` table) has been retired.
-> The app now uses the structured system (`memoranda_structured`) exclusively.
+## 🚀 Form types
 
-## 🚀 Features
+All submissions live in **one** table (`submissions`) with a `form_type` discriminator and a
+JSON `payload`. Adding a new form type later means adding one HTML page and one line in
+`submit.php` — no database or backend rebuild.
 
-- **Structured submission** (`input.html` → `submit_collect.php`)
-  - Nickname + class selection
-  - Guided fields: *Was / Wann / Warum / Folgen* (+ optional *Beispiel/Quelle*)
-  - Character counters and inline tips
-- **Admin panel** (`admin_structured.html`)
-  - Session-based login (credentials from `.env`)
-  - Filter by class / nickname, sort by date
-  - Statistics (entries, students, classes, avg. length)
-  - CSV / JSON export, clear database
-- **Machine API** (`api_structured_data.php`)
-  - Read-only JSON endpoint for external tools (e.g. a Python analysis script)
-  - Authenticated via `X-API-Key` **header** (from `.env`)
+| Page                | `form_type`    | Fields |
+|---------------------|----------------|--------|
+| `feedback.html`     | `feedback`     | free text (no visible question) |
+| `exit_ticket.html`  | `exit_ticket`  | key insight · open question · confidence **1–5** · what would help *(optional)* |
+| `strukturiert.html` | `strukturiert` | Was · Wann · Warum · Folgen · Beispiel *(optional)* |
+
+Every form asks for a **class** (required) and a **nickname** (optional).
+
+## 🧭 Pages
+
+- `index.html` — landing page; students choose a form
+- `feedback.html` / `exit_ticket.html` / `strukturiert.html` — the forms
+- `input.html` — legacy URL, now just redirects to `index.html`
+- `login.html` → `admin.html` — teacher login and dashboard
 
 ## 📋 Prerequisites
 
-- PHP 8+ with the `mysqli` extension
-- MySQL / MariaDB
-- Apache (the included `.htaccess` protects `.env` and blocks directory listing)
-- HTTPS in production (session cookies are set with the `Secure` flag)
+- PHP 8+ with `mysqli`
+- MySQL 5.7+ / MariaDB 10.2+ (for the `JSON` column type)
+- Apache (the included `.htaccess` protects `.env` and disables directory listing)
+- HTTPS in production (session cookies use the `Secure` flag)
 
 ## 🔧 Installation
 
-1. Clone the repository:
+1. Clone and create your `.env` from the template:
    ```bash
    git clone https://github.com/kssmagister/collectandconnect.git
+   cp .env.example .env      # then fill in real values
    ```
-2. Create your `.env` from the template and fill in real values:
+   `.env` is git-ignored **and** blocked from web access via `.htaccess`. Never commit secrets.
+2. Create the table:
    ```bash
-   cp .env.example .env
-   ```
-   ```env
-   DB_HOST=your_database_host
-   DB_NAME=your_database_name
-   DB_USER=your_database_user
-   DB_PASSWORD=your_database_password
-
-   ADMIN_USERNAME=your_admin_username
-   ADMIN_PASSWORD=your_admin_password
-
-   PYTHON_API_KEY=your_api_key      # only if you use api_structured_data.php
-   ```
-   > `.env` is git-ignored and additionally blocked from web access via `.htaccess`.
-   > **Never commit real credentials.**
-3. Create the database table:
-   ```sql
-   CREATE TABLE memoranda_structured (
-       id        INT AUTO_INCREMENT PRIMARY KEY,
-       nickname  VARCHAR(100) NOT NULL,
-       auswahl   VARCHAR(50)  NOT NULL,   -- class
-       was       TEXT,
-       wann      VARCHAR(255),
-       warum     TEXT,
-       folgen    TEXT,
-       beispiel  TEXT,
-       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   );
+   mysql -u USER -p DBNAME < migrations/001_submissions.sql
    ```
 
-## 📁 Project Structure
+## 🌐 Data export API (for external analysis)
+
+`api_structured_data.php` is a read-only JSON endpoint, authenticated with an API key sent in
+the **`X-API-Key` header** (value = `PYTHON_API_KEY` from `.env`). A machine on your own network
+pulls the data — the public site never pushes anywhere.
+
+```bash
+curl -H "X-API-Key: $KEY" \
+  "https://kss-latein.info/collectandconnect/api_structured_data.php?limit=1000"
+```
+
+Query parameters:
+
+| Param       | Meaning |
+|-------------|---------|
+| `form_type` | only one type (e.g. `exit_ticket`); omit for all |
+| `limit`     | max rows (default 1000, capped at 10000) |
+| `since`     | only rows newer than this timestamp (incremental pulls) |
+
+Each row contains the raw `payload` object plus a pre-joined `text` field (handy as LLM input).
+
+## 📁 Project structure
 
 ```
 collectandconnect/
-├── .env.example                     # Template for environment config
-├── .gitignore
-├── .htaccess                        # Protects .env, blocks listing
-├── config.php                       # Loads .env, session + DB settings
-├── input.html                       # Public structured submission form
-├── submit_collect.php               # Stores a submission (prepared statement)
-├── login.html / login.php           # Admin login (credentials from .env)
-├── logout.php / check_login.php     # Session helpers
-├── admin_structured.html            # Admin dashboard (filter, stats, export)
-├── getEntries_structured.php        # Data endpoint (login-protected)
-├── clearDB_memoranda_structured.php # Wipes the table (login-protected)
-├── api_structured_data.php          # API-key protected JSON endpoint
-├── img/                             # Screenshots (may be outdated)
-├── LICENSE
-└── README.md
+├── .htaccess                 # Protects .env, disables listing
+├── config.php                # Loads .env, session settings
+├── db.php                    # DB connection + login helper (shared)
+├── index.html                # Landing page
+├── feedback.html             # Free-text feedback form
+├── exit_ticket.html          # Exit ticket (4 questions incl. 1–5 scale)
+├── strukturiert.html         # Structured Was/Wann/Warum/Folgen form
+├── input.html                # Legacy redirect → index.html
+├── submit.php                # Generic submission handler (all form types)
+├── login.html / login.php    # Admin login (credentials from .env)
+├── logout.php / check_login.php
+├── admin.html                # Unified admin: filter, stats, export, clear
+├── getSubmissions.php        # Data endpoint (login-protected)
+├── clearSubmissions.php      # Delete (login-protected, optional per type)
+├── api_structured_data.php   # API-key protected JSON endpoint
+├── assets/style.css          # Shared styling
+├── migrations/001_submissions.sql
+├── img/  ·  LICENSE  ·  README.md
 ```
 
 ## 🔒 Security notes
 
 Implemented:
-- Environment-based configuration; `.env` git-ignored and `.htaccess`-blocked
-- All SQL via prepared statements (`mysqli`)
+- `.env` git-ignored and `.htaccess`-blocked; all SQL via prepared statements
 - Admin credentials compared with `hash_equals`; session id regenerated on login
-- Output in the admin panel is HTML-escaped (XSS)
-- Data endpoints require an authenticated session; API endpoint requires a header key
-- Errors are logged, not displayed to the client
+- All admin output is HTML-escaped (XSS); errors are logged, not shown to clients
+- Data endpoints require an authenticated session; the API requires a header key
 
-Still recommended (see project notes):
+Still recommended:
 - Hash the admin password instead of storing it in `.env` as plaintext
-- Add CSRF tokens to state-changing POSTs (login, clear-DB)
-- Add rate limiting / lockout on the login endpoint
+- CSRF tokens on state-changing POSTs (login, clear)
+- Rate limiting / lockout on the login endpoint
+- For AI analysis of minors' data, prefer a **local** model on your own server
 
 ## 📝 License
 
-GNU General Public License v3.0 — see [LICENSE](LICENSE) or
-<https://www.gnu.org/licenses/gpl-3.0.html>.
+GNU General Public License v3.0 — see [LICENSE](LICENSE).

@@ -1,14 +1,14 @@
 <?php
-require_once 'config.php';
+// Read-only JSON-API fuer externe Auswertung (z.B. Heim-Ubuntu-Server + KI).
+// Authentifizierung ausschliesslich per Header X-API-Key (nie per GET-Parameter,
+// sonst landet der Key in Logs/History).
+require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
-header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
+header('Access-Control-Allow-Methods: GET');
+header('Access-Control-Allow-Headers: X-API-Key');
 
-// API-Key Authentifizierung: ausschliesslich per Header (nie per GET-Parameter,
-// sonst landet der Key in Server-Logs und Browser-History).
-$valid_api_key = getenv('PYTHON_API_KEY');
+$valid_api_key    = getenv('PYTHON_API_KEY');
 $provided_api_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
 
 if ($valid_api_key === false || $valid_api_key === '' || !hash_equals($valid_api_key, $provided_api_key)) {
@@ -17,53 +17,53 @@ if ($valid_api_key === false || $valid_api_key === '' || !hash_equals($valid_api
     exit;
 }
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
-
 // Parameter
-$limit = isset($_GET['limit']) ? intval($_GET['limit']) : 1000;
-$format = $_GET['format'] ?? 'combined';
+$formType = isset($_GET['form_type']) ? trim($_GET['form_type']) : '';
+$limit    = isset($_GET['limit']) ? max(1, min(10000, intval($_GET['limit']))) : 1000;
+// Inkrementeller Abruf: nur Eintraege neuer als dieser Zeitstempel (ISO/MySQL-Format)
+$since    = isset($_GET['since']) ? trim($_GET['since']) : '';
 
-// Daten abfragen
-$sql = "SELECT id, nickname, auswahl, was, wann, warum, folgen, beispiel, timestamp 
-        FROM memoranda_structured 
-        ORDER BY timestamp DESC 
-        LIMIT ?";
+$sql = 'SELECT id, form_type, klasse, nickname, payload, created_at FROM submissions WHERE 1=1';
+$params = [];
+$types = '';
 
+if ($formType !== '') { $sql .= ' AND form_type = ?'; $params[] = $formType; $types .= 's'; }
+if ($since !== '')    { $sql .= ' AND created_at > ?'; $params[] = $since;    $types .= 's'; }
+
+$sql .= ' ORDER BY created_at DESC LIMIT ?';
+$params[] = $limit;
+$types .= 'i';
+
+$conn = db();
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $limit);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
 $data = [];
 while ($row = $result->fetch_assoc()) {
-    if ($format === 'combined') {
-        $row['texteingabe'] = sprintf(
-            "Was: %s | Wann: %s | Warum: %s | Folgen: %s | Beispiel: %s",
-            $row['was'],
-            $row['wann'],
-            $row['warum'],
-            $row['folgen'],
-            $row['beispiel'] ?? ''
-        );
+    $payload = json_decode($row['payload'], true) ?: [];
+    // Fertiger Fliesstext aus allen Antwortteilen – praktisch als KI-Input
+    $parts = [];
+    foreach ($payload as $key => $value) {
+        $parts[] = ucfirst($key) . ': ' . $value;
     }
-    $data[] = $row;
+    $data[] = [
+        'id'         => (int) $row['id'],
+        'form_type'  => $row['form_type'],
+        'klasse'     => $row['klasse'],
+        'nickname'   => $row['nickname'],
+        'payload'    => $payload,
+        'text'       => implode(' | ', $parts),
+        'created_at' => $row['created_at'],
+    ];
 }
 
 echo json_encode([
     'success' => true,
-    'meta' => [
-        'total_entries' => count($data),
-        'timestamp' => date('c')
-    ],
-    'data' => $data
-]);
+    'meta'    => ['total_entries' => count($data), 'timestamp' => date('c')],
+    'data'    => $data,
+], JSON_UNESCAPED_UNICODE);
 
 $stmt->close();
 $conn->close();
-?>
