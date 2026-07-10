@@ -31,7 +31,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           local-dir: ./
-          server-dir: ./www/kss-latein.info/collectandconnect/
+          server-dir: ./
           # Dev-/Doku-Dateien nicht auf den Webserver laden.
           # .env ist ohnehin nicht im Repo (gitignored) und wird nie angefasst.
           exclude: |
