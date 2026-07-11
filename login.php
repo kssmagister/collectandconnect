@@ -65,6 +65,16 @@ try {
 
 $passOk = $teacher && password_verify($inPass, $teacher['password_hash']);
 
+if (isset($_GET['dbg'])) { // TEMP-DIAGNOSE
+    echo json_encode(['dbg' => [
+        'found'    => (bool) $teacher,
+        'hashlen'  => $teacher ? strlen($teacher['password_hash']) : 0,
+        'hashpre'  => $teacher ? substr($teacher['password_hash'], 0, 7) : '',
+        'verify'   => $passOk,
+    ]]);
+    exit;
+}
+
 if ($passOk) {
     if ($throttleOk) {
         try { $del = $conn->prepare("DELETE FROM login_attempts WHERE ip = ?");
