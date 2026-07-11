@@ -22,11 +22,14 @@ $formType = isset($_GET['form_type']) ? trim($_GET['form_type']) : '';
 $limit    = isset($_GET['limit']) ? max(1, min(10000, intval($_GET['limit']))) : 1000;
 // Inkrementeller Abruf: nur Eintraege neuer als dieser Zeitstempel (ISO/MySQL-Format)
 $since    = isset($_GET['since']) ? trim($_GET['since']) : '';
+// Optional: nur die Daten einer Lehrperson (per Code). Ohne Angabe: alle.
+$teacher  = isset($_GET['teacher']) ? trim($_GET['teacher']) : '';
 
-$sql = 'SELECT id, form_type, klasse, nickname, payload, created_at FROM submissions WHERE 1=1';
+$sql = 'SELECT id, teacher_id, form_type, klasse, nickname, payload, created_at FROM submissions WHERE 1=1';
 $params = [];
 $types = '';
 
+if ($teacher !== '')  { $sql .= ' AND teacher_id = (SELECT id FROM teachers WHERE code = ?)'; $params[] = $teacher; $types .= 's'; }
 if ($formType !== '') { $sql .= ' AND form_type = ?'; $params[] = $formType; $types .= 's'; }
 if ($since !== '')    { $sql .= ' AND created_at > ?'; $params[] = $since;    $types .= 's'; }
 
@@ -50,6 +53,7 @@ while ($row = $result->fetch_assoc()) {
     }
     $data[] = [
         'id'         => (int) $row['id'],
+        'teacher_id' => (int) $row['teacher_id'],
         'form_type'  => $row['form_type'],
         'klasse'     => $row['klasse'],
         'nickname'   => $row['nickname'],

@@ -1,45 +1,32 @@
 <?php
-// Admin-Login: bcrypt-Passwortpruefung + einfaches Rate-Limit gegen Brute-Force.
-// Das Rate-Limit ist "fail-open": geht die Zaehl-Tabelle nicht (fehlende Rechte,
-// Tabelle nicht vorhanden, mysqli-Exception ab PHP 8.1), wird die Bremse einfach
+// Admin-/Lehrer-Login: Pruefung gegen die teachers-Tabelle (bcrypt) + Rate-Limit.
+// Rate-Limit ist "fail-open": geht die Zaehl-Tabelle nicht, wird die Bremse
 // uebersprungen, damit der Login nie ganz blockiert.
-//
-// WICHTIG: Die Formular-Eingaben heissen bewusst $inUser/$inPass und NICHT
-// $username/$password – letztere sind in config.php die DB-Zugangsdaten, die db()
-// per global nutzt. Ein Ueberschreiben wuerde die DB-Verbindung kaputt machen.
-require_once __DIR__ . '/db.php'; // config.php (Session/.env) + db()/Helfer
+require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
 
 $inUser = $_POST['username'] ?? '';
 $inPass = $_POST['password'] ?? '';
 
-// Echte Client-IP bevorzugen: hinter einem Proxy (wie bei Hostpoint) ist
-// REMOTE_ADDR fuer ALLE Nutzer gleich -> ein gemeinsamer Zaehler wuerde alle
-// zusammen aussperren. X-Forwarded-For enthaelt die urspruengliche Client-IP.
+// Echte Client-IP bevorzugen (hinter Proxy waere REMOTE_ADDR fuer alle gleich).
 $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-$ip = trim(explode(',', $ip)[0]); // erste IP der Kette = urspruenglicher Client
+$ip = trim(explode(',', $ip)[0]);
 
 $conn = db();
 
 $maxAttempts = 8;
-$windowMin   = 15; // fest, keine Benutzereingabe
+$windowMin   = 15;
 
-// Best-effort: Tabelle anlegen. Fehlt das Recht, wird die Exception geschluckt.
-try {
-    $conn->query(
-        "CREATE TABLE IF NOT EXISTS login_attempts (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            ip VARCHAR(45) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_ip_time (ip, created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-    );
-} catch (\Throwable $e) { /* egal – Rate-Limit ist optional */ }
+try { $conn->query(
+    "CREATE TABLE IF NOT EXISTS login_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY, ip VARCHAR(45) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_ip_time (ip, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+); } catch (\Throwable $e) {}
 
-// ── Rate-Limit: Fehlversuche pro IP im Zeitfenster zaehlen ─────────────
-$fails = 0;
-$throttleOk = false;
+// ── Rate-Limit ─────────────────────────────────────────────────────────
+$fails = 0; $throttleOk = false;
 try {
     $stmt = $conn->prepare(
         "SELECT COUNT(*) AS c FROM login_attempts
@@ -50,53 +37,56 @@ try {
     $fails = (int) ($stmt->get_result()->fetch_assoc()['c'] ?? 0);
     $stmt->close();
     $throttleOk = true;
-} catch (\Throwable $e) {
-    $throttleOk = false; // Bremse deaktiviert, Login funktioniert weiter
-}
+} catch (\Throwable $e) { $throttleOk = false; }
 
 if ($throttleOk && $fails >= $maxAttempts) {
     http_response_code(429);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Zu viele Fehlversuche. Bitte in etwa ' . $windowMin . ' Minuten erneut versuchen.'
-    ]);
+    echo json_encode(['success' => false,
+        'message' => 'Zu viele Fehlversuche. Bitte in etwa ' . $windowMin . ' Minuten erneut versuchen.']);
     exit;
 }
 
-// ── Zugangsdaten pruefen: bevorzugt bcrypt-Hash, sonst Klartext-Fallback ─
-$userOk = hash_equals((string) $adminUsername, $inUser);
-if (!empty($adminPasswordHash)) {
-    $passOk = password_verify($inPass, $adminPasswordHash);
-} else {
-    $passOk = hash_equals((string) $adminPassword, $inPass);
+// ── Zugangsdaten gegen teachers-Tabelle pruefen ────────────────────────
+$teacher = null;
+try {
+    $stmt = $conn->prepare(
+        "SELECT id, password_hash, name, code, is_admin FROM teachers WHERE username = ? LIMIT 1"
+    );
+    $stmt->bind_param('s', $inUser);
+    $stmt->execute();
+    $teacher = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+} catch (\Throwable $e) {
+    // Tabelle fehlt vermutlich -> Setup unvollstaendig
+    echo json_encode(['success' => false,
+        'message' => 'Setup unvollstaendig: bitte Migration 003_multiteacher.sql ausfuehren.']);
+    exit;
 }
 
-if ($userOk && $passOk) {
-    // Erfolg: Fehlversuche dieser IP loeschen (best-effort), Session erneuern
+$passOk = $teacher && password_verify($inPass, $teacher['password_hash']);
+
+if ($passOk) {
     if ($throttleOk) {
-        try {
-            $del = $conn->prepare("DELETE FROM login_attempts WHERE ip = ?");
-            $del->bind_param('s', $ip);
-            $del->execute();
-            $del->close();
-        } catch (\Throwable $e) { /* egal */ }
+        try { $del = $conn->prepare("DELETE FROM login_attempts WHERE ip = ?");
+            $del->bind_param('s', $ip); $del->execute(); $del->close(); } catch (\Throwable $e) {}
     }
-    session_regenerate_id(true); // Session-Fixation verhindern
-    $_SESSION['loggedin'] = true;
-    csrf_token(); // CSRF-Token fuer diese Session erzeugen
+    session_regenerate_id(true);
+    $_SESSION['loggedin']     = true;
+    $_SESSION['teacher_id']   = (int) $teacher['id'];
+    $_SESSION['teacher_name'] = $teacher['name'];
+    $_SESSION['teacher_code'] = $teacher['code'];
+    $_SESSION['is_admin']     = (int) $teacher['is_admin'] === 1;
+    csrf_token();
     echo json_encode(['success' => true]);
 } else {
-    // Fehlversuch protokollieren (best-effort); kleine Verzoegerung bremst Skripte
     if ($throttleOk) {
         try {
             $ins = $conn->prepare("INSERT INTO login_attempts (ip) VALUES (?)");
-            $ins->bind_param('s', $ip);
-            $ins->execute();
-            $ins->close();
+            $ins->bind_param('s', $ip); $ins->execute(); $ins->close();
             $conn->query("DELETE FROM login_attempts WHERE created_at < (NOW() - INTERVAL 1 DAY)");
-        } catch (\Throwable $e) { /* egal */ }
+        } catch (\Throwable $e) {}
     }
-    usleep(300000); // 0,3 s
+    usleep(300000);
     echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
 }
 

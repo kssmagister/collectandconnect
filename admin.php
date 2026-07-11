@@ -2,7 +2,13 @@
 // Serverseitige Login-Wache: nicht angemeldete Besucher sehen die Seite gar nicht.
 require_once __DIR__ . '/db.php';
 if (empty($_SESSION['loggedin'])) { header('Location: login.html'); exit; }
-$csrfToken = csrf_token();
+$csrfToken   = csrf_token();
+$teacherName = $_SESSION['teacher_name'] ?? '';
+$teacherCode = $_SESSION['teacher_code'] ?? '';
+$isAdmin     = !empty($_SESSION['is_admin']);
+$base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
+      . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+$shareLink = $base . '/?t=' . rawurlencode($teacherCode);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -14,6 +20,7 @@ $csrfToken = csrf_token();
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/style.css" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
   <style>
     .container { max-width: 1100px; }
     .entry-card { background:#fff; border-radius:6px; padding:1rem; margin-bottom:0.75rem;
@@ -35,14 +42,27 @@ $csrfToken = csrf_token();
 </head>
 <body>
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
       <h1 class="mb-0">Admin – Antworten</h1>
       <div>
+        <button class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#helpModal">❓ Hilfe</button>
+        <?php if ($isAdmin): ?><a href="teachers.php" class="btn btn-dark btn-sm">Konten verwalten</a><?php endif; ?>
         <button id="beamerBtn" class="btn btn-secondary btn-sm">🖥 Beamer (Feedback)</button>
         <button id="exportCSV" class="btn btn-success btn-sm">CSV</button>
         <button id="exportJSON" class="btn btn-info btn-sm">JSON</button>
         <button id="clearBtn" class="btn btn-warning btn-sm">Löschen</button>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
+      </div>
+    </div>
+
+    <!-- Angemeldete Person + persoenlicher Link zum Teilen mit Schuelern -->
+    <div class="entry-card" style="padding:0.6rem 1rem;">
+      <div class="d-flex align-items-center flex-wrap" style="gap:0.5rem; font-size:13px;">
+        <span>Angemeldet als <strong><?php echo htmlspecialchars($teacherName, ENT_QUOTES); ?></strong></span>
+        <span class="text-muted">·</span>
+        <span>Dein Link für Schüler:</span>
+        <code id="shareLink" style="font-size:12px;"><?php echo htmlspecialchars($shareLink, ENT_QUOTES); ?></code>
+        <button id="copyLink" class="btn btn-outline-secondary btn-sm py-0">kopieren</button>
       </div>
     </div>
 
@@ -100,6 +120,21 @@ $csrfToken = csrf_token();
 
   <footer>© 2025 Daniel Rutz. Alle Rechte vorbehalten.</footer>
 
+  <div class="modal fade" id="helpModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">So funktioniert der Admin-Bereich</h5>
+      <button type="button" class="close" data-dismiss="modal">&times;</button></div>
+    <div class="modal-body" style="font-size:14px;">
+      <ul class="pl-3 mb-0">
+        <li>Du siehst <strong>nur deine eigenen</strong> Antworten.</li>
+        <li><strong>Dein Link für Schüler</strong> steht oben — teile ihn (z.B. per QR-Code/Beamer). Nur darüber landen Antworten bei dir.</li>
+        <li><strong>Filter</strong> nach Typ/Klasse/Nickname; die Statistik zeigt u.a. die Ø-Sicherheit der Exit-Tickets.</li>
+        <li><strong>🖥 Beamer (Feedback)</strong> öffnet die Präsentationsansicht (Karten oder Wortwolke, Vollbild).</li>
+        <li><strong>CSV/JSON</strong> exportiert die aktuelle Auswahl; <strong>Löschen</strong> entfernt deine Einträge (nur den gewählten Typ, falls gefiltert).</li>
+        <?php if ($isAdmin): ?><li><strong>Konten verwalten</strong> (nur Admin): weitere Lehrpersonen anlegen — jede mit eigenem Login und eigenem Link.</li><?php endif; ?>
+      </ul>
+    </div>
+  </div></div></div>
+
   <script>
     const TYPE_LABELS = { feedback:'Feedback', exit_ticket:'Exit-Ticket', strukturiert:'Strukturiert' };
     const FIELD_LABELS = {
@@ -118,6 +153,13 @@ $csrfToken = csrf_token();
     $('#beamerBtn').on('click', function(){
       var k = $('#filterClass').val();
       window.open('feedback_view.php' + (k ? ('?klasse=' + encodeURIComponent(k)) : ''), '_blank');
+    });
+
+    // Persoenlichen Link kopieren
+    $('#copyLink').on('click', function(){
+      var l = $('#shareLink').text();
+      navigator.clipboard.writeText(l).then(function(){}, function(){ prompt('Link kopieren:', l); });
+      var b = $(this); b.text('kopiert!'); setTimeout(function(){ b.text('kopieren'); }, 1500);
     });
 
     function esc(t){

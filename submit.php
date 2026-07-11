@@ -1,27 +1,19 @@
 <?php
 // Generischer Endpunkt fuer ALLE Fragetypen.
-// Erwartet POST: form_type, klasse, (nickname optional) + typ-spezifische Felder.
+// Erwartet POST: code (Lehrer-Code), form_type, klasse, (nickname optional)
+// + typ-spezifische Felder.
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
 
 // Erlaubte Formulartypen und ihre Felder.
-// Neuer Fragetyp spaeter = hier einen Eintrag ergaenzen (+ eine HTML-Seite). Sonst nichts.
 $schemas = [
-    'feedback' => [
-        'required' => ['text'],
-        'optional' => [],
-    ],
-    'exit_ticket' => [
-        'required' => ['erkenntnis', 'sicherheit'],
-        'optional' => ['frage', 'hilfe'],
-    ],
-    'strukturiert' => [
-        'required' => ['was', 'wann', 'warum', 'folgen'],
-        'optional' => ['beispiel'],
-    ],
+    'feedback'     => ['required' => ['text'],                              'optional' => []],
+    'exit_ticket'  => ['required' => ['erkenntnis', 'sicherheit'],          'optional' => ['frage', 'hilfe']],
+    'strukturiert' => ['required' => ['was', 'wann', 'warum', 'folgen'],    'optional' => ['beispiel']],
 ];
 
+$code     = isset($_POST['code']) ? trim($_POST['code']) : '';
 $formType = isset($_POST['form_type']) ? trim($_POST['form_type']) : '';
 $klasse   = isset($_POST['klasse']) ? trim($_POST['klasse']) : '';
 $nickname = isset($_POST['nickname']) ? trim($_POST['nickname']) : '';
@@ -35,10 +27,27 @@ if ($klasse === '') {
     exit;
 }
 
-// Payload aus erlaubten Feldern zusammenbauen (nichts anderes wird gespeichert)
+$conn = db();
+
+// Lehrer-Code aufloesen -> teacher_id
+if ($code === '') {
+    echo json_encode(['success' => false, 'message' => 'Kein Lehrer-Link. Bitte den Link deiner Lehrperson verwenden.']);
+    exit;
+}
+$stmt = $conn->prepare("SELECT id FROM teachers WHERE code = ? LIMIT 1");
+$stmt->bind_param('s', $code);
+$stmt->execute();
+$teacher = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+if (!$teacher) {
+    echo json_encode(['success' => false, 'message' => 'Ungueltiger Lehrer-Link.']);
+    exit;
+}
+$teacherId = (int) $teacher['id'];
+
+// Payload aus erlaubten Feldern zusammenbauen
 $schema = $schemas[$formType];
 $payload = [];
-
 foreach ($schema['required'] as $field) {
     $value = isset($_POST[$field]) ? trim($_POST[$field]) : '';
     if ($value === '') {
@@ -49,29 +58,26 @@ foreach ($schema['required'] as $field) {
 }
 foreach ($schema['optional'] as $field) {
     $value = isset($_POST[$field]) ? trim($_POST[$field]) : '';
-    if ($value !== '') {
-        $payload[$field] = $value;
-    }
+    if ($value !== '') { $payload[$field] = $value; }
 }
 
-// Spezialvalidierung: Sicherheits-Skala 1-5
+// Sicherheits-Skala 1-5 pruefen
 if ($formType === 'exit_ticket') {
     $s = filter_var($payload['sicherheit'], FILTER_VALIDATE_INT);
     if ($s === false || $s < 1 || $s > 5) {
         echo json_encode(['success' => false, 'message' => 'Sicherheit muss 1 bis 5 sein']);
         exit;
     }
-    $payload['sicherheit'] = $s; // als Zahl speichern
+    $payload['sicherheit'] = $s;
 }
 
-$conn = db();
-$payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE);
+$payloadJson   = json_encode($payload, JSON_UNESCAPED_UNICODE);
 $nicknameParam = ($nickname === '') ? null : $nickname;
 
 $stmt = $conn->prepare(
-    'INSERT INTO submissions (form_type, klasse, nickname, payload) VALUES (?, ?, ?, ?)'
+    'INSERT INTO submissions (teacher_id, form_type, klasse, nickname, payload) VALUES (?, ?, ?, ?, ?)'
 );
-$stmt->bind_param('ssss', $formType, $klasse, $nicknameParam, $payloadJson);
+$stmt->bind_param('issss', $teacherId, $formType, $klasse, $nicknameParam, $payloadJson);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'id' => $stmt->insert_id]);

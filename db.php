@@ -17,12 +17,28 @@ function db(): mysqli {
     return $conn;
 }
 
-// Bricht mit 401 ab, wenn kein Admin eingeloggt ist.
+// Bricht mit 401 ab, wenn niemand eingeloggt ist.
 function require_login(): void {
     if (empty($_SESSION['loggedin'])) {
         http_response_code(401);
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'Nicht eingeloggt']);
+        exit;
+    }
+}
+
+// ID der eingeloggten Lehrperson (fuer Daten-Trennung).
+function current_teacher_id(): int {
+    return (int) ($_SESSION['teacher_id'] ?? 0);
+}
+
+// Bricht mit 403 ab, wenn die eingeloggte Person kein Admin ist.
+function require_admin(): void {
+    require_login();
+    if (empty($_SESSION['is_admin'])) {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Nur fuer Administratoren']);
         exit;
     }
 }

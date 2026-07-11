@@ -43,16 +43,14 @@ $adminUsername     = getenv('ADMIN_USERNAME');
 $adminPassword     = getenv('ADMIN_PASSWORD');
 $adminPasswordHash = getenv('ADMIN_PASSWORD_HASH');
 
-// Verify all required environment variables are set
-$required_vars = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'ADMIN_USERNAME'];
+// Verify all required environment variables are set.
+// Hinweis: Logins liegen jetzt in der DB-Tabelle `teachers` (Mehrbenutzer),
+// daher werden ADMIN_* hier nicht mehr benoetigt.
+$required_vars = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
 foreach ($required_vars as $var) {
     if (!getenv($var)) {
         die("Environment variable $var is not set");
     }
-}
-// Entweder Hash oder Klartext-Passwort muss gesetzt sein
-if (!$adminPasswordHash && !$adminPassword) {
-    die("Environment variable ADMIN_PASSWORD_HASH (oder ADMIN_PASSWORD) is not set");
 }
 
 // Fehler protokollieren statt an den Client ausgeben (kein Info-Leak in Produktion)

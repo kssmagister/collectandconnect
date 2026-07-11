@@ -19,6 +19,15 @@ JSON `payload`. Adding a new form type later means adding one HTML page and one 
 
 Every form asks for a **class** (required) and a **nickname** (optional).
 
+## Multi-teacher
+
+Each teacher has an account (DB table `teachers`) and a unique **code**. Teachers share a
+personal link `.../collectandconnect/?t=CODE`; the forms carry the code, and every submission
+is stored with that teacher's `teacher_id`. Admin, beamer view, export and clear are all
+scoped to the logged-in teacher — **each teacher sees only their own data**. One account is
+flagged `is_admin` and can create/manage other accounts via `teachers.php`. Concise help
+popups ("❓ Hilfe") explain each page.
+
 ## 🧭 Pages
 
 - `index.html` — landing page; students choose a form
@@ -83,7 +92,11 @@ collectandconnect/
 ├── login.html / login.php    # Admin login (credentials from .env)
 ├── logout.php / check_login.php
 ├── admin.php                 # Unified admin: filter, stats, export, clear (CSRF)
-├── feedback_view.php         # Beamer/classroom view of feedback (login-protected)
+├── feedback_view.php         # Beamer/classroom view: cards + word cloud (login)
+├── teachers.php              # Account management (admin only)
+├── teacher_manage.php        # Add/edit/reset/delete teacher accounts (admin, CSRF)
+├── teacher_info.php          # Public: teacher display name for a share code
+├── assets/common.js          # Student pages: read ?t=CODE, teacher banner
 ├── getSubmissions.php        # Data endpoint (login-protected)
 ├── clearSubmissions.php      # Delete (login-protected, optional per type)
 ├── api_structured_data.php   # API-key protected JSON endpoint
