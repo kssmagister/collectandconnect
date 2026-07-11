@@ -3,14 +3,16 @@
 // Das Rate-Limit ist "fail-open": geht die Zaehl-Tabelle nicht (fehlende Rechte,
 // Tabelle nicht vorhanden, mysqli-Exception ab PHP 8.1), wird die Bremse einfach
 // uebersprungen, damit der Login nie ganz blockiert.
+//
+// WICHTIG: Die Formular-Eingaben heissen bewusst $inUser/$inPass und NICHT
+// $username/$password – letztere sind in config.php die DB-Zugangsdaten, die db()
+// per global nutzt. Ein Ueberschreiben wuerde die DB-Verbindung kaputt machen.
 require_once __DIR__ . '/db.php'; // config.php (Session/.env) + db()/Helfer
-
-ini_set('display_errors', '1'); error_reporting(E_ALL); // TEMP-DEBUG
 
 header('Content-Type: application/json');
 
-$username = $_POST['username'] ?? '';
-$password = $_POST['password'] ?? '';
+$inUser = $_POST['username'] ?? '';
+$inPass = $_POST['password'] ?? '';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
 $conn = db();
@@ -57,11 +59,11 @@ if ($throttleOk && $fails >= $maxAttempts) {
 }
 
 // ── Zugangsdaten pruefen: bevorzugt bcrypt-Hash, sonst Klartext-Fallback ─
-$userOk = hash_equals((string) $adminUsername, $username);
+$userOk = hash_equals((string) $adminUsername, $inUser);
 if (!empty($adminPasswordHash)) {
-    $passOk = password_verify($password, $adminPasswordHash);
+    $passOk = password_verify($inPass, $adminPasswordHash);
 } else {
-    $passOk = hash_equals((string) $adminPassword, $password);
+    $passOk = hash_equals((string) $adminPassword, $inPass);
 }
 
 if ($userOk && $passOk) {
