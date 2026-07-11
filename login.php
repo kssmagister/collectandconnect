@@ -5,6 +5,8 @@
 // uebersprungen, damit der Login nie ganz blockiert.
 require_once __DIR__ . '/db.php'; // config.php (Session/.env) + db()/Helfer
 
+ini_set('display_errors', '1'); error_reporting(E_ALL); // TEMP-DEBUG
+
 header('Content-Type: application/json');
 
 $username = $_POST['username'] ?? '';
