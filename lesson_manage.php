@@ -57,4 +57,19 @@ if ($action === 'delete') {
     exit;
 }
 
+if ($action === 'request') {
+    // Auswertung dieser Lektion anfordern (der Ubuntu-Server holt sie ab).
+    $id = (int) ($_POST['id'] ?? 0);
+    if ($id <= 0) { echo json_encode(['success' => false, 'message' => 'Ungueltig.']); exit; }
+    $stmt = $conn->prepare(
+        "UPDATE lessons SET analysis_requested = 1, analysis_requested_at = NOW()
+         WHERE id = ? AND teacher_id = ?"
+    );
+    $stmt->bind_param('ii', $id, $me);
+    $ok = $stmt->execute();
+    $stmt->close();
+    echo json_encode($ok ? ['success' => true] : ['success' => false, 'message' => 'Fehler.']);
+    exit;
+}
+
 echo json_encode(['success' => false, 'message' => 'Unbekannte Aktion.']);

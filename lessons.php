@@ -11,7 +11,7 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'ht
 
 $conn = db();
 $lessons = [];
-$stmt = $conn->prepare("SELECT id, code, title, created_at FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT id, code, title, created_at, analysis_requested FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
 $stmt->bind_param('i', $me);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -59,10 +59,10 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
 
     <div class="table-responsive">
       <table class="table table-striped">
-        <thead><tr><th>Titel</th><th>Code</th><th>Link für diese Lektion</th><th style="width:1%"></th></tr></thead>
+        <thead><tr><th>Titel</th><th>Code</th><th>Link für diese Lektion</th><th>Auswertung</th><th style="width:1%"></th></tr></thead>
         <tbody>
         <?php if (!$lessons): ?>
-          <tr><td colspan="4" class="text-center text-muted">Noch keine Lektionen. Lege oben eine an.</td></tr>
+          <tr><td colspan="5" class="text-center text-muted">Noch keine Lektionen. Lege oben eine an.</td></tr>
         <?php endif; ?>
         <?php foreach ($lessons as $l):
             $link = $base . '/?t=' . rawurlencode($teacherCode) . '&l=' . rawurlencode($l['code']); ?>
@@ -72,6 +72,13 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
             <td>
               <span class="link-box"><?php echo h($link); ?></span>
               <button class="btn btn-link btn-sm p-0 copy-link" data-link="<?php echo h($link); ?>">kopieren</button>
+            </td>
+            <td>
+              <?php if (!empty($l['analysis_requested'])): ?>
+                <span class="badge badge-warning">⏳ angefordert</span>
+              <?php else: ?>
+                <button class="btn btn-outline-info btn-sm act-req">KI-Auswertung anfordern</button>
+              <?php endif; ?>
             </td>
             <td class="text-nowrap"><button class="btn btn-outline-danger btn-sm act-del">Löschen</button></td>
           </tr>
@@ -88,6 +95,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
       <ul class="pl-3 mb-0">
         <li>Lege pro Unterrichtsstunde eine Lektion an (z.B. das Thema).</li>
         <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
+        <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Die Markierung verschwindet, sobald sie erledigt ist.</li>
         <li>Beim Löschen bleiben die Antworten erhalten – sie verlieren nur die Lektionszuordnung.</li>
       </ul>
     </div>
@@ -108,6 +116,11 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
       var tr=$(this).closest('tr');
       if(!confirm('Diese Lektion löschen? (Antworten bleiben erhalten)')) return;
       post({ action:'delete', id:tr.data('id') })
+        .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
+    });
+    $('.act-req').on('click', function(){
+      var tr=$(this).closest('tr');
+      post({ action:'request', id:tr.data('id') })
         .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
     });
     $('.copy-link').on('click', function(){
