@@ -13,7 +13,12 @@ header('Content-Type: application/json');
 
 $inUser = $_POST['username'] ?? '';
 $inPass = $_POST['password'] ?? '';
-$ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+// Echte Client-IP bevorzugen: hinter einem Proxy (wie bei Hostpoint) ist
+// REMOTE_ADDR fuer ALLE Nutzer gleich -> ein gemeinsamer Zaehler wuerde alle
+// zusammen aussperren. X-Forwarded-For enthaelt die urspruengliche Client-IP.
+$ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+$ip = trim(explode(',', $ip)[0]); // erste IP der Kette = urspruenglicher Client
 
 $conn = db();
 
