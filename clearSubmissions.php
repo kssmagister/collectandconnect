@@ -4,6 +4,7 @@ require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
 require_login();
+require_csrf(); // Loeschen nur mit gueltigem CSRF-Token
 
 $formType = isset($_POST['form_type']) ? trim($_POST['form_type']) : '';
 

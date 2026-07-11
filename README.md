@@ -24,7 +24,7 @@ Every form asks for a **class** (required) and a **nickname** (optional).
 - `index.html` — landing page; students choose a form
 - `feedback.html` / `exit_ticket.html` / `strukturiert.html` — the forms
 - `input.html` — legacy URL, now just redirects to `index.html`
-- `login.html` → `admin.html` — teacher login and dashboard
+- `login.html` → `admin.php` — teacher login and dashboard
 
 ## 📋 Prerequisites
 
@@ -82,7 +82,7 @@ collectandconnect/
 ├── submit.php                # Generic submission handler (all form types)
 ├── login.html / login.php    # Admin login (credentials from .env)
 ├── logout.php / check_login.php
-├── admin.html                # Unified admin: filter, stats, export, clear
+├── admin.php                 # Unified admin: filter, stats, export, clear (CSRF)
 ├── getSubmissions.php        # Data endpoint (login-protected)
 ├── clearSubmissions.php      # Delete (login-protected, optional per type)
 ├── api_structured_data.php   # API-key protected JSON endpoint
@@ -95,14 +95,17 @@ collectandconnect/
 
 Implemented:
 - `.env` git-ignored and `.htaccess`-blocked; all SQL via prepared statements
-- Admin credentials compared with `hash_equals`; session id regenerated on login
+- **Admin password stored as a bcrypt hash** (`ADMIN_PASSWORD_HASH`, verified with
+  `password_verify`); plaintext `ADMIN_PASSWORD` still works as a fallback
+- **Login rate limiting**: max 8 failed attempts per IP per 15 min (`login_attempts`
+  table, auto-created), plus a small delay per failure
+- **CSRF protection** on the destructive admin action (`clearSubmissions.php`):
+  session token embedded in `admin.php`, sent as `X-CSRF-TOKEN`
+- Session id regenerated on login (anti-fixation)
 - All admin output is HTML-escaped (XSS); errors are logged, not shown to clients
 - Data endpoints require an authenticated session; the API requires a header key
 
 Still recommended:
-- Hash the admin password instead of storing it in `.env` as plaintext
-- CSRF tokens on state-changing POSTs (login, clear)
-- Rate limiting / lockout on the login endpoint
 - For AI analysis of minors' data, prefer a **local** model on your own server
 
 ## 📝 License

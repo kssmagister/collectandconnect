@@ -1,8 +1,15 @@
+<?php
+// Serverseitige Login-Wache: nicht angemeldete Besucher sehen die Seite gar nicht.
+require_once __DIR__ . '/db.php';
+if (empty($_SESSION['loggedin'])) { header('Location: login.html'); exit; }
+$csrfToken = csrf_token();
+?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
   <title>Admin – KSS COLLECT &amp; CONNECT</title>
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/style.css" rel="stylesheet">
@@ -102,9 +109,8 @@
     const SCALE_TEXT = {1:'sehr unsicher',2:'eher unsicher',3:'mittel',4:'ziemlich sicher',5:'sehr sicher'};
     const SCALE_COLOR = {1:'#dc3545',2:'#fd7e14',3:'#ffc107',4:'#28a745',5:'#198754'};
     let allEntries = [];
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    // Login-Wache
-    $.get('check_login.php', function(r){ if(!r.loggedin){ window.location.href='login.html'; } }, 'json');
     $('#logoutBtn').on('click', function(){ $.post('logout.php', function(){ window.location.href='login.html'; }); });
 
     function esc(t){
@@ -192,9 +198,13 @@
       const type=$('#filterType').val();
       const scope = type ? 'nur „'+(TYPE_LABELS[type]||type)+'"' : 'ALLE Typen';
       if(!confirm('Wirklich '+scope+' unwiderruflich löschen?')) return;
-      $.post('clearSubmissions.php', type?{form_type:type}:{}, null, 'json')
+      $.ajax({
+        url: 'clearSubmissions.php', type: 'POST', dataType: 'json',
+        headers: { 'X-CSRF-TOKEN': csrfToken },
+        data: type ? { form_type: type } : {}
+      })
         .done(function(r){ if(r.success){ alert('Gelöscht.'); load(); } else { alert('Fehler: '+r.message); } })
-        .fail(function(){ alert('Fehler beim Löschen.'); });
+        .fail(function(xhr){ alert('Fehler beim Löschen' + (xhr.status===403 ? ' (CSRF/Session abgelaufen – bitte neu anmelden).' : '.')); });
     });
 
     load();
