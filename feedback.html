@@ -73,6 +73,7 @@
 
       $.post('submit.php', {
         code: window.TEACHER_CODE,
+        lesson: window.LESSON_CODE,
         form_type: 'feedback',
         klasse: klasse,
         nickname: $('#nickname').val().trim(),

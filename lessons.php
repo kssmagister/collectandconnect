@@ -1,0 +1,120 @@
+<?php
+// Lektionen der eingeloggten Lehrperson (nicht nur Admin).
+require_once __DIR__ . '/db.php';
+if (empty($_SESSION['loggedin'])) { header('Location: login.html'); exit; }
+$csrfToken   = csrf_token();
+$teacherCode = $_SESSION['teacher_code'] ?? '';
+$me = current_teacher_id();
+
+$base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
+      . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+
+$conn = db();
+$lessons = [];
+$stmt = $conn->prepare("SELECT id, code, title, created_at FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
+$stmt->bind_param('i', $me);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) { $lessons[] = $row; }
+$stmt->close();
+$conn->close();
+
+function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<?php echo h($csrfToken); ?>">
+  <title>Lektionen – KSS COLLECT &amp; CONNECT</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/style.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  <style>
+    .container { max-width:1000px; }
+    .table td, .table th { vertical-align:middle; font-size:13px; }
+    .link-box { font-size:12px; color:#495057; word-break:break-all; }
+    .code-chip { background:#495057; color:#fff; padding:0.15rem 0.5rem; border-radius:10px; font-weight:600; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+      <h1 class="mb-0">Meine Lektionen</h1>
+      <div>
+        <button class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#helpModal">❓ Hilfe</button>
+        <a href="admin.php" class="btn btn-secondary btn-sm">← Admin</a>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h5>Neue Lektion</h5>
+      <form id="addForm" class="form-row align-items-end">
+        <div class="col-md-9 mb-2"><label>Titel der Lektion</label><input class="form-control form-control-sm" id="addTitle" placeholder="z.B. Ablativus Absolutus – Einführung" required></div>
+        <div class="col-md-3 mb-2"><button class="btn btn-primary btn-sm btn-block" type="submit">Anlegen</button></div>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead><tr><th>Titel</th><th>Code</th><th>Link für diese Lektion</th><th style="width:1%"></th></tr></thead>
+        <tbody>
+        <?php if (!$lessons): ?>
+          <tr><td colspan="4" class="text-center text-muted">Noch keine Lektionen. Lege oben eine an.</td></tr>
+        <?php endif; ?>
+        <?php foreach ($lessons as $l):
+            $link = $base . '/?t=' . rawurlencode($teacherCode) . '&l=' . rawurlencode($l['code']); ?>
+          <tr data-id="<?php echo (int) $l['id']; ?>">
+            <td><?php echo h($l['title']); ?></td>
+            <td><span class="code-chip"><?php echo h($l['code']); ?></span></td>
+            <td>
+              <span class="link-box"><?php echo h($link); ?></span>
+              <button class="btn btn-link btn-sm p-0 copy-link" data-link="<?php echo h($link); ?>">kopieren</button>
+            </td>
+            <td class="text-nowrap"><button class="btn btn-outline-danger btn-sm act-del">Löschen</button></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal fade" id="helpModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Lektionen</h5>
+      <button type="button" class="close" data-dismiss="modal">&times;</button></div>
+    <div class="modal-body" style="font-size:14px;">
+      <ul class="pl-3 mb-0">
+        <li>Lege pro Unterrichtsstunde eine Lektion an (z.B. das Thema).</li>
+        <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
+        <li>Beim Löschen bleiben die Antworten erhalten – sie verlieren nur die Lektionszuordnung.</li>
+      </ul>
+    </div>
+  </div></div></div>
+
+  <footer>© 2025 Daniel Rutz. Alle Rechte vorbehalten.</footer>
+
+  <script>
+    var csrf = document.querySelector('meta[name="csrf-token"]').content;
+    function post(data){ return $.ajax({url:'lesson_manage.php', type:'POST', dataType:'json', headers:{'X-CSRF-TOKEN':csrf}, data:data}); }
+
+    $('#addForm').on('submit', function(e){ e.preventDefault();
+      post({ action:'add', title:$('#addTitle').val() })
+        .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } })
+        .fail(function(){ alert('Fehler.'); });
+    });
+    $('.act-del').on('click', function(){
+      var tr=$(this).closest('tr');
+      if(!confirm('Diese Lektion löschen? (Antworten bleiben erhalten)')) return;
+      post({ action:'delete', id:tr.data('id') })
+        .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
+    });
+    $('.copy-link').on('click', function(){
+      var l=$(this).data('link');
+      navigator.clipboard.writeText(l).then(function(){}, function(){ prompt('Link kopieren:', l); });
+      var b=$(this); b.text('kopiert!'); setTimeout(function(){ b.text('kopieren'); }, 1500);
+    });
+  </script>
+</body>
+</html>

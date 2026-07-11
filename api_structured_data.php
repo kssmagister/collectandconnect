@@ -24,16 +24,23 @@ $limit    = isset($_GET['limit']) ? max(1, min(10000, intval($_GET['limit']))) :
 $since    = isset($_GET['since']) ? trim($_GET['since']) : '';
 // Optional: nur die Daten einer Lehrperson (per Code). Ohne Angabe: alle.
 $teacher  = isset($_GET['teacher']) ? trim($_GET['teacher']) : '';
+// Optional: nur die Daten einer Lektion (per Lektions-Code).
+$lesson   = isset($_GET['lesson']) ? trim($_GET['lesson']) : '';
 
-$sql = 'SELECT id, teacher_id, form_type, klasse, nickname, payload, created_at FROM submissions WHERE 1=1';
+$sql = 'SELECT s.id, s.teacher_id, s.lesson_id, l.title AS lesson_title,
+               s.form_type, s.klasse, s.nickname, s.payload, s.created_at
+        FROM submissions s
+        LEFT JOIN lessons l ON l.id = s.lesson_id
+        WHERE 1=1';
 $params = [];
 $types = '';
 
-if ($teacher !== '')  { $sql .= ' AND teacher_id = (SELECT id FROM teachers WHERE code = ?)'; $params[] = $teacher; $types .= 's'; }
-if ($formType !== '') { $sql .= ' AND form_type = ?'; $params[] = $formType; $types .= 's'; }
-if ($since !== '')    { $sql .= ' AND created_at > ?'; $params[] = $since;    $types .= 's'; }
+if ($teacher !== '')  { $sql .= ' AND s.teacher_id = (SELECT id FROM teachers WHERE code = ?)'; $params[] = $teacher; $types .= 's'; }
+if ($lesson !== '')   { $sql .= ' AND s.lesson_id = (SELECT id FROM lessons WHERE code = ?)';    $params[] = $lesson;  $types .= 's'; }
+if ($formType !== '') { $sql .= ' AND s.form_type = ?'; $params[] = $formType; $types .= 's'; }
+if ($since !== '')    { $sql .= ' AND s.created_at > ?'; $params[] = $since;    $types .= 's'; }
 
-$sql .= ' ORDER BY created_at DESC LIMIT ?';
+$sql .= ' ORDER BY s.created_at DESC LIMIT ?';
 $params[] = $limit;
 $types .= 'i';
 
@@ -52,9 +59,11 @@ while ($row = $result->fetch_assoc()) {
         $parts[] = ucfirst($key) . ': ' . $value;
     }
     $data[] = [
-        'id'         => (int) $row['id'],
-        'teacher_id' => (int) $row['teacher_id'],
-        'form_type'  => $row['form_type'],
+        'id'           => (int) $row['id'],
+        'teacher_id'   => (int) $row['teacher_id'],
+        'lesson_id'    => $row['lesson_id'] !== null ? (int) $row['lesson_id'] : null,
+        'lesson_title' => $row['lesson_title'],
+        'form_type'    => $row['form_type'],
         'klasse'     => $row['klasse'],
         'nickname'   => $row['nickname'],
         'payload'    => $payload,

@@ -28,6 +28,11 @@ scoped to the logged-in teacher — **each teacher sees only their own data**. O
 flagged `is_admin` and can create/manage other accounts via `teachers.php`. Concise help
 popups ("❓ Hilfe") explain each page.
 
+**Lessons (optional):** a teacher can create lessons (`lessons.php`) and share a per-lesson
+link `?t=TEACHER&l=LESSON`; submissions then carry a `lesson_id`. The API exposes
+`lesson_id`/`lesson_title` and a `?lesson=CODE` filter, so downstream analysis (DRP) can
+group feedback per lesson instead of per class×day.
+
 ## 🧭 Pages
 
 - `index.html` — landing page; students choose a form
@@ -96,6 +101,9 @@ collectandconnect/
 ├── teachers.php              # Account management (admin only)
 ├── teacher_manage.php        # Add/edit/reset/delete teacher accounts (admin, CSRF)
 ├── teacher_info.php          # Public: teacher display name for a share code
+├── lessons.php               # Per-teacher lessons + per-lesson share links
+├── lesson_manage.php         # Add/delete lessons (teacher, CSRF)
+├── lesson_info.php           # Public: lesson title for a lesson code
 ├── assets/common.js          # Student pages: read ?t=CODE, teacher banner
 ├── getSubmissions.php        # Data endpoint (login-protected)
 ├── clearSubmissions.php      # Delete (login-protected, optional per type)

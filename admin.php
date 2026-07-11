@@ -30,6 +30,7 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
     .badge-type { background:#495057; color:#fff; padding:0.25rem 0.6rem; border-radius:12px; font-size:12px; font-weight:600; }
     .badge-class { background:#6c757d; color:#fff; padding:0.2rem 0.5rem; border-radius:10px; font-size:12px; margin-left:0.4rem; }
     .badge-nick { background:#e9ecef; color:#495057; padding:0.2rem 0.5rem; border-radius:10px; font-size:12px; margin-left:0.4rem; }
+    .badge-lesson { background:#17a2b8; color:#fff; padding:0.2rem 0.5rem; border-radius:10px; font-size:12px; margin-left:0.4rem; }
     .badge-scale { display:inline-block; min-width:1.6rem; text-align:center; border-radius:6px; padding:0.1rem 0.5rem; font-weight:700; color:#fff; }
     .ts { color:#999; font-size:11px; }
     .field-label { font-weight:600; color:#495057; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.15rem; }
@@ -46,6 +47,7 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
       <h1 class="mb-0">Admin – Antworten</h1>
       <div>
         <button class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#helpModal">❓ Hilfe</button>
+        <a href="lessons.php" class="btn btn-info btn-sm">Lektionen</a>
         <?php if ($isAdmin): ?><a href="teachers.php" class="btn btn-dark btn-sm">Konten verwalten</a><?php endif; ?>
         <button id="beamerBtn" class="btn btn-secondary btn-sm">🖥 Beamer (Feedback)</button>
         <button id="exportCSV" class="btn btn-success btn-sm">CSV</button>
@@ -193,6 +195,7 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
         const card = $('<div class="entry-card">');
         let head = '<div class="entry-header"><div><span class="badge-type">'+esc(TYPE_LABELS[e.form_type]||e.form_type)+'</span>'
           + '<span class="badge-class">'+esc(e.klasse)+'</span>'
+          + (e.lesson_title ? '<span class="badge-lesson">'+esc(e.lesson_title)+'</span>' : '')
           + (e.nickname ? '<span class="badge-nick">'+esc(e.nickname)+'</span>' : '')
           + '</div><span class="ts">'+fmtDate(e.created_at)+'</span></div>';
         card.append(head);

@@ -45,6 +45,19 @@ if (!$teacher) {
 }
 $teacherId = (int) $teacher['id'];
 
+// Optionaler Lektions-Code -> lesson_id (nur wenn er dieser Lehrperson gehoert).
+// Ungueltiger Code: Antwort geht trotzdem durch (ohne Lektionszuordnung).
+$lessonCode = isset($_POST['lesson']) ? trim($_POST['lesson']) : '';
+$lessonId = null;
+if ($lessonCode !== '') {
+    $ls = $conn->prepare("SELECT id FROM lessons WHERE code = ? AND teacher_id = ? LIMIT 1");
+    $ls->bind_param('si', $lessonCode, $teacherId);
+    $ls->execute();
+    $lrow = $ls->get_result()->fetch_assoc();
+    $ls->close();
+    if ($lrow) { $lessonId = (int) $lrow['id']; }
+}
+
 // Payload aus erlaubten Feldern zusammenbauen
 $schema = $schemas[$formType];
 $payload = [];
@@ -75,9 +88,9 @@ $payloadJson   = json_encode($payload, JSON_UNESCAPED_UNICODE);
 $nicknameParam = ($nickname === '') ? null : $nickname;
 
 $stmt = $conn->prepare(
-    'INSERT INTO submissions (teacher_id, form_type, klasse, nickname, payload) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO submissions (teacher_id, lesson_id, form_type, klasse, nickname, payload) VALUES (?, ?, ?, ?, ?, ?)'
 );
-$stmt->bind_param('issss', $teacherId, $formType, $klasse, $nicknameParam, $payloadJson);
+$stmt->bind_param('iissss', $teacherId, $lessonId, $formType, $klasse, $nicknameParam, $payloadJson);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'id' => $stmt->insert_id]);

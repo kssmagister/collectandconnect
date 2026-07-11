@@ -1,5 +1,5 @@
 <?php
-// Liefert die Antworten der eingeloggten Lehrperson als JSON.
+// Liefert die Antworten der eingeloggten Lehrperson als JSON (inkl. Lektionstitel).
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
@@ -12,16 +12,19 @@ $nickname = isset($_GET['nickname']) ? trim($_GET['nickname']) : '';
 $sort     = (isset($_GET['sort']) && $_GET['sort'] === 'asc') ? 'ASC' : 'DESC';
 
 // Datentrennung: immer auf die eigene teacher_id einschraenken.
-$sql = 'SELECT id, form_type, klasse, nickname, payload, created_at
-        FROM submissions WHERE teacher_id = ?';
+$sql = 'SELECT s.id, s.form_type, s.klasse, s.nickname, s.payload, s.created_at,
+               s.lesson_id, l.title AS lesson_title
+        FROM submissions s
+        LEFT JOIN lessons l ON l.id = s.lesson_id
+        WHERE s.teacher_id = ?';
 $params = [$teacherId];
 $types = 'i';
 
-if ($formType !== '') { $sql .= ' AND form_type = ?'; $params[] = $formType; $types .= 's'; }
-if ($klasse !== '')   { $sql .= ' AND klasse = ?';    $params[] = $klasse;   $types .= 's'; }
-if ($nickname !== '') { $sql .= ' AND nickname LIKE ?'; $params[] = '%' . $nickname . '%'; $types .= 's'; }
+if ($formType !== '') { $sql .= ' AND s.form_type = ?'; $params[] = $formType; $types .= 's'; }
+if ($klasse !== '')   { $sql .= ' AND s.klasse = ?';    $params[] = $klasse;   $types .= 's'; }
+if ($nickname !== '') { $sql .= ' AND s.nickname LIKE ?'; $params[] = '%' . $nickname . '%'; $types .= 's'; }
 
-$sql .= " ORDER BY created_at $sort";
+$sql .= " ORDER BY s.created_at $sort";
 
 $conn = db();
 $stmt = $conn->prepare($sql);
