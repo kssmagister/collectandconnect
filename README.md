@@ -83,6 +83,7 @@ collectandconnect/
 ├── login.html / login.php    # Admin login (credentials from .env)
 ├── logout.php / check_login.php
 ├── admin.php                 # Unified admin: filter, stats, export, clear (CSRF)
+├── feedback_view.php         # Beamer/classroom view of feedback (login-protected)
 ├── getSubmissions.php        # Data endpoint (login-protected)
 ├── clearSubmissions.php      # Delete (login-protected, optional per type)
 ├── api_structured_data.php   # API-key protected JSON endpoint

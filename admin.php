@@ -38,6 +38,7 @@ $csrfToken = csrf_token();
     <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
       <h1 class="mb-0">Admin – Antworten</h1>
       <div>
+        <button id="beamerBtn" class="btn btn-secondary btn-sm">🖥 Beamer (Feedback)</button>
         <button id="exportCSV" class="btn btn-success btn-sm">CSV</button>
         <button id="exportJSON" class="btn btn-info btn-sm">JSON</button>
         <button id="clearBtn" class="btn btn-warning btn-sm">Löschen</button>
@@ -112,6 +113,12 @@ $csrfToken = csrf_token();
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     $('#logoutBtn').on('click', function(){ $.post('logout.php', function(){ window.location.href='login.html'; }); });
+
+    // Beamer-Ansicht (Feedback) im neuen Tab, mit aktuell gewaehltem Klassenfilter
+    $('#beamerBtn').on('click', function(){
+      var k = $('#filterClass').val();
+      window.open('feedback_view.php' + (k ? ('?klasse=' + encodeURIComponent(k)) : ''), '_blank');
+    });
 
     function esc(t){
       if(t===null||t===undefined) return '';
