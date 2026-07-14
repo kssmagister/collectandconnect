@@ -27,7 +27,7 @@ $teacher  = isset($_GET['teacher']) ? trim($_GET['teacher']) : '';
 // Optional: nur die Daten einer Lektion (per Lektions-Code).
 $lesson   = isset($_GET['lesson']) ? trim($_GET['lesson']) : '';
 
-$sql = 'SELECT s.id, s.teacher_id, s.lesson_id, l.title AS lesson_title,
+$sql = 'SELECT s.id, s.teacher_id, s.lesson_id, l.code AS lesson_code, l.title AS lesson_title,
                s.form_type, s.klasse, s.nickname, s.payload, s.created_at
         FROM submissions s
         LEFT JOIN lessons l ON l.id = s.lesson_id
@@ -62,6 +62,7 @@ while ($row = $result->fetch_assoc()) {
         'id'           => (int) $row['id'],
         'teacher_id'   => (int) $row['teacher_id'],
         'lesson_id'    => $row['lesson_id'] !== null ? (int) $row['lesson_id'] : null,
+        'lesson_code'  => $row['lesson_code'],
         'lesson_title' => $row['lesson_title'],
         'form_type'    => $row['form_type'],
         'klasse'     => $row['klasse'],
