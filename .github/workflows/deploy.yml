@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - 'migrations/**'
       - 'README.md'
+      - 'CLAUDE.md'
       - 'LICENSE'
       - 'img/**'
 
@@ -40,6 +41,7 @@ jobs:
             .github/**
             migrations/**
             README.md
+            CLAUDE.md
             LICENSE
             img/**
             .env
