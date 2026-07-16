@@ -43,6 +43,34 @@ function require_admin(): void {
     }
 }
 
+// ── Klassen ───────────────────────────────────────────────────────────
+// Stammliste aller Klassen (Gruppen wie in den Formularen). Einzige Quelle
+// der Wahrheit fuer die serverseitig gerenderten Auswahlfelder.
+function all_classes(): array {
+    return [
+        'FMS'      => ['1FMS', '2FMS', '3FMS'],
+        'GYM-G'    => ['1GYM-G', '2GYM-G', '3GYM-G', '4GYM-G'],
+        'WMS/IMS'  => ['1WMS/IMS', '2WMS/IMS', '3WMS/IMS'],
+        'Sonstige' => ['LatInt', 'efG', 'ffGR', 'EXTRA'],
+    ];
+}
+
+// Flache Liste aller gueltigen Klassennamen.
+function all_classes_flat(): array {
+    return array_merge(...array_values(all_classes()));
+}
+
+// Persoenliche Klassenauswahl einer Lehrperson. Leeres Array = alle Klassen.
+function teacher_classes(mysqli $conn, int $teacherId): array {
+    $stmt = $conn->prepare("SELECT classes FROM teachers WHERE id = ? LIMIT 1");
+    $stmt->bind_param('i', $teacherId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $list = ($row && $row['classes']) ? json_decode($row['classes'], true) : null;
+    return is_array($list) ? $list : [];
+}
+
 // ── CSRF ──────────────────────────────────────────────────────────────
 // Erzeugt/liefert das CSRF-Token der aktuellen Session.
 function csrf_token(): string {

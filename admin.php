@@ -9,6 +9,12 @@ $isAdmin     = !empty($_SESSION['is_admin']);
 $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
       . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
 $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
+
+// Persoenliche Klassenauswahl (leer = alle Klassen)
+$conn = db();
+$myClasses = teacher_classes($conn, current_teacher_id());
+$conn->close();
+$classGroups = all_classes();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -48,6 +54,7 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
       <div>
         <button class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#helpModal">❓ Hilfe</button>
         <a href="lessons.php" class="btn btn-info btn-sm">Lektionen</a>
+        <a href="classes.php" class="btn btn-outline-info btn-sm">Meine Klassen</a>
         <?php if ($isAdmin): ?><a href="teachers.php" class="btn btn-dark btn-sm">Konten verwalten</a><?php endif; ?>
         <button id="beamerBtn" class="btn btn-secondary btn-sm">🖥 Beamer (Feedback)</button>
         <button id="exportCSV" class="btn btn-success btn-sm">CSV</button>
@@ -95,10 +102,15 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
             <label>Klasse</label>
             <select class="form-control form-control-sm" id="filterClass">
               <option value="">Alle Klassen</option>
-              <optgroup label="FMS"><option>1FMS</option><option>2FMS</option><option>3FMS</option></optgroup>
-              <optgroup label="GYM-G"><option>1GYM-G</option><option>2GYM-G</option><option>3GYM-G</option><option>4GYM-G</option></optgroup>
-              <optgroup label="WMS/IMS"><option>1WMS/IMS</option><option>2WMS/IMS</option><option>3WMS/IMS</option></optgroup>
-              <optgroup label="Sonstige"><option>LatInt</option><option>efG</option><option>ffGR</option><option>EXTRA</option></optgroup>
+              <?php if ($myClasses): ?>
+                <?php foreach ($myClasses as $k): ?><option><?php echo htmlspecialchars($k, ENT_QUOTES); ?></option><?php endforeach; ?>
+              <?php else: ?>
+                <?php foreach ($classGroups as $g => $ks): ?>
+                  <optgroup label="<?php echo htmlspecialchars($g, ENT_QUOTES); ?>">
+                    <?php foreach ($ks as $k): ?><option><?php echo htmlspecialchars($k, ENT_QUOTES); ?></option><?php endforeach; ?>
+                  </optgroup>
+                <?php endforeach; ?>
+              <?php endif; ?>
             </select>
           </div>
           <div class="col-md-3">

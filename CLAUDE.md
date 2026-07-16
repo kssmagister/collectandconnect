@@ -22,7 +22,8 @@ privaten Ubuntu-Server) per API abgeholt.
 ## Datenbank (`rutzimp_pensum2023`, User `rutzimp_pensat`)
 
 ```sql
-teachers   (id, username UNIQUE, password_hash [bcrypt], name, code UNIQUE, is_admin, created_at)
+teachers   (id, username UNIQUE, password_hash [bcrypt], name, code UNIQUE, is_admin,
+            classes [JSON-Array, persoenliche Klassenauswahl; NULL = alle], created_at)
 lessons    (id, teacher_id, code UNIQUE, title, feedback_question, created_at,
             analysis_requested, analysis_requested_at)
 submissions(id, teacher_id, lesson_id NULL, form_type, klasse, nickname NULL,
@@ -46,6 +47,11 @@ stehen als JSON in `payload`.
   einen Banner (Name/Lektion, via `teacher_info.php` / `lesson_info.php`).
   `submit.php` löst die Codes zu `teacher_id`/`lesson_id` auf.
 - **Neuer Fragetyp** = 1 HTML-Seite + 1 Eintrag in `$schemas` in `submit.php`. Sonst nichts.
+- **Klassen:** Stammliste zentral in `db.php` (`all_classes()` / `all_classes_flat()`).
+  Jede Lehrperson kann in `classes.php` eine **persönliche Auswahl** speichern
+  (`teachers.classes`, JSON). Leer = alle. Die Schüler-Formulare bekommen sie über
+  `teacher_info.php` → `common.js` baut das `#klasse`-Feld um; Admin- und Beamer-Filter
+  werden serverseitig entsprechend gerendert. Die statische Liste im HTML ist der Fallback.
 - **Sicherheit:** bcrypt (`password_verify`), CSRF (`csrf_token()`/`require_csrf()` in `db.php`,
   Header `X-CSRF-TOKEN`), Login-Rate-Limit (8/15 min pro IP), `session_regenerate_id`,
   Output HTML-escaped, Fehler werden geloggt statt angezeigt.
@@ -64,6 +70,7 @@ login.html/.php, logout.php, check_login.php
 admin.php                 Admin (Filter, Statistik, Export, Löschen, Share-Link)
 feedback_view.php         Beamer-Ansicht: Karten (einspaltig) + Wortwolke (wordcloud2 CDN)
 lessons.php / lesson_manage.php / lesson_info.php      Lektionen + Feedback-Frage
+classes.php / class_manage.php                         persoenliche Klassenauswahl
 teachers.php / teacher_manage.php / teacher_info.php   Konten (nur Admin)
 getSubmissions.php, clearSubmissions.php               Daten (login-geschützt)
 api_structured_data.php, api_analysis_queue.php        für die DRP

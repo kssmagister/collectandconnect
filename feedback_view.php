@@ -4,6 +4,12 @@
 require_once __DIR__ . '/db.php';
 if (empty($_SESSION['loggedin'])) { header('Location: login.html'); exit; }
 $initialKlasse = isset($_GET['klasse']) ? (string) $_GET['klasse'] : '';
+
+// Persoenliche Klassenauswahl (leer = alle Klassen)
+$conn = db();
+$myClasses = teacher_classes($conn, current_teacher_id());
+$conn->close();
+$classGroups = all_classes();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -67,10 +73,15 @@ $initialKlasse = isset($_GET['klasse']) ? (string) $_GET['klasse'] : '';
 
     <select id="klasse" class="form-control form-control-sm">
       <option value="">Alle Klassen</option>
-      <optgroup label="FMS"><option>1FMS</option><option>2FMS</option><option>3FMS</option></optgroup>
-      <optgroup label="GYM-G"><option>1GYM-G</option><option>2GYM-G</option><option>3GYM-G</option><option>4GYM-G</option></optgroup>
-      <optgroup label="WMS/IMS"><option>1WMS/IMS</option><option>2WMS/IMS</option><option>3WMS/IMS</option></optgroup>
-      <optgroup label="Sonstige"><option>LatInt</option><option>efG</option><option>ffGR</option><option>EXTRA</option></optgroup>
+      <?php if ($myClasses): ?>
+        <?php foreach ($myClasses as $k): ?><option><?php echo htmlspecialchars($k, ENT_QUOTES); ?></option><?php endforeach; ?>
+      <?php else: ?>
+        <?php foreach ($classGroups as $g => $ks): ?>
+          <optgroup label="<?php echo htmlspecialchars($g, ENT_QUOTES); ?>">
+            <?php foreach ($ks as $k): ?><option><?php echo htmlspecialchars($k, ENT_QUOTES); ?></option><?php endforeach; ?>
+          </optgroup>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </select>
 
     <span class="meta"><span id="count">0</span> Einträge · Stand <span id="stamp">–</span></span>

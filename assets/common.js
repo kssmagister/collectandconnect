@@ -39,6 +39,23 @@
         }
         el.className = 'alert alert-info';
         el.textContent = 'Für: ' + d.name;
+
+        // Persoenliche Klassenauswahl der Lehrperson: Auswahlfeld darauf eindampfen.
+        // Ohne Auswahl (null) bleibt die vollstaendige Liste aus dem HTML stehen.
+        var sel = document.getElementById('klasse');
+        if (sel && Array.isArray(d.classes) && d.classes.length) {
+          var current = sel.value;
+          sel.innerHTML = '';
+          var ph = document.createElement('option');
+          ph.value = ''; ph.textContent = '-- Klasse wählen --';
+          sel.appendChild(ph);
+          d.classes.forEach(function (c) {
+            var o = document.createElement('option');
+            o.value = c; o.textContent = c;
+            sel.appendChild(o);
+          });
+          if (d.classes.indexOf(current) !== -1) { sel.value = current; }
+        }
         if (window.LESSON_CODE) {
           fetch('lesson_info.php?code=' + encodeURIComponent(window.LESSON_CODE))
             .then(function (r) { return r.json(); })
