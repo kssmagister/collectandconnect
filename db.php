@@ -51,7 +51,7 @@ function all_classes(): array {
         'FMS'      => ['1FMS', '2FMS', '3FMS'],
         'GYM-G'    => ['1GYM-G', '2GYM-G', '3GYM-G', '4GYM-G'],
         'WMS/IMS'  => ['1WMS/IMS', '2WMS/IMS', '3WMS/IMS'],
-        'Sonstige' => ['LatInt', 'efG', 'ffGR', 'EXTRA'],
+        'Sonstige' => ['1sG','LatInt', 'efG', 'ffGR', 'EXTRA'],
     ];
 }
 

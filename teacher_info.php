@@ -19,12 +19,15 @@ try {
 
     if (!$row) { echo json_encode(['success' => false]); exit; }
 
-    // Persoenliche Klassenauswahl (leer/NULL -> null = alle Klassen anzeigen)
+    // Persoenliche Klassenauswahl (leer/NULL -> null = alle Klassen anzeigen).
+    // all_classes = Stammliste aus db.php; die Formulare befuellen ihr Auswahlfeld
+    // damit, es gibt also keine duplizierte Klassenliste im HTML mehr.
     $classes = $row['classes'] ? json_decode($row['classes'], true) : null;
     echo json_encode([
-        'success' => true,
-        'name'    => $row['name'],
-        'classes' => (is_array($classes) && $classes) ? $classes : null,
+        'success'     => true,
+        'name'        => $row['name'],
+        'classes'     => (is_array($classes) && $classes) ? $classes : null,
+        'all_classes' => all_classes(),
     ], JSON_UNESCAPED_UNICODE);
 } catch (\Throwable $e) {
     // z.B. wenn die teachers-Tabelle (noch) fehlt -> sauber statt 500

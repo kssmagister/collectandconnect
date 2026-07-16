@@ -47,11 +47,14 @@ stehen als JSON in `payload`.
   einen Banner (Name/Lektion, via `teacher_info.php` / `lesson_info.php`).
   `submit.php` löst die Codes zu `teacher_id`/`lesson_id` auf.
 - **Neuer Fragetyp** = 1 HTML-Seite + 1 Eintrag in `$schemas` in `submit.php`. Sonst nichts.
-- **Klassen:** Stammliste zentral in `db.php` (`all_classes()` / `all_classes_flat()`).
-  Jede Lehrperson kann in `classes.php` eine **persönliche Auswahl** speichern
-  (`teachers.classes`, JSON). Leer = alle. Die Schüler-Formulare bekommen sie über
-  `teacher_info.php` → `common.js` baut das `#klasse`-Feld um; Admin- und Beamer-Filter
-  werden serverseitig entsprechend gerendert. Die statische Liste im HTML ist der Fallback.
+- **Klassen – einzige Quelle ist `all_classes()` in `db.php`.** Nirgends sonst eine
+  Klassenliste pflegen! Verteilung:
+  - Schüler-Formulare: `<select id="klasse">` enthält **nur** den Platzhalter;
+    `teacher_info.php` liefert `all_classes` (+ ggf. persönliche Auswahl),
+    `assets/common.js` (`fillClasses`) baut die Optionen.
+  - `classes.php`, Admin- und Beamer-Filter: serverseitig aus `all_classes()`.
+  - Jede Lehrperson kann in `classes.php` eine **persönliche Auswahl** speichern
+    (`teachers.classes`, JSON; leer = alle). Sie hat Vorrang vor der Stammliste.
 - **Sicherheit:** bcrypt (`password_verify`), CSRF (`csrf_token()`/`require_csrf()` in `db.php`,
   Header `X-CSRF-TOKEN`), Login-Rate-Limit (8/15 min pro IP), `session_regenerate_id`,
   Output HTML-escaped, Fehler werden geloggt statt angezeigt.

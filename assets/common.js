@@ -7,6 +7,38 @@
   window.TEACHER_CODE = params.get('t') || '';
   window.LESSON_CODE = params.get('l') || '';
 
+  // Befuellt das Klassen-Auswahlfeld aus den Serverdaten (teacher_info.php).
+  //   d.classes     = persoenliche Auswahl der Lehrperson (hat Vorrang) oder null
+  //   d.all_classes = Stammliste { Gruppe: [Klassen] } aus db.php
+  function fillClasses(d) {
+    var sel = document.getElementById('klasse');
+    if (!sel) return;
+    var current = sel.value;
+
+    function opt(parent, name) {
+      var o = document.createElement('option');
+      o.value = name; o.textContent = name;
+      parent.appendChild(o);
+    }
+
+    sel.innerHTML = '';
+    var ph = document.createElement('option');
+    ph.value = ''; ph.textContent = '-- Klasse wählen --';
+    sel.appendChild(ph);
+
+    if (Array.isArray(d.classes) && d.classes.length) {
+      d.classes.forEach(function (c) { opt(sel, c); });
+    } else if (d.all_classes && typeof d.all_classes === 'object') {
+      Object.keys(d.all_classes).forEach(function (group) {
+        var og = document.createElement('optgroup');
+        og.label = group;
+        (d.all_classes[group] || []).forEach(function (c) { opt(og, c); });
+        sel.appendChild(og);
+      });
+    }
+    if (current) { sel.value = current; }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     // Codes an weiterfuehrende Links weitergeben
     if (window.TEACHER_CODE) {
@@ -40,22 +72,10 @@
         el.className = 'alert alert-info';
         el.textContent = 'Für: ' + d.name;
 
-        // Persoenliche Klassenauswahl der Lehrperson: Auswahlfeld darauf eindampfen.
-        // Ohne Auswahl (null) bleibt die vollstaendige Liste aus dem HTML stehen.
-        var sel = document.getElementById('klasse');
-        if (sel && Array.isArray(d.classes) && d.classes.length) {
-          var current = sel.value;
-          sel.innerHTML = '';
-          var ph = document.createElement('option');
-          ph.value = ''; ph.textContent = '-- Klasse wählen --';
-          sel.appendChild(ph);
-          d.classes.forEach(function (c) {
-            var o = document.createElement('option');
-            o.value = c; o.textContent = c;
-            sel.appendChild(o);
-          });
-          if (d.classes.indexOf(current) !== -1) { sel.value = current; }
-        }
+        // Klassen-Auswahlfeld immer vom Server befuellen – einzige Quelle ist
+        // all_classes() in db.php. Hat die Lehrperson eine persoenliche Auswahl,
+        // hat diese Vorrang; sonst die vollstaendige Stammliste (mit Gruppen).
+        fillClasses(d);
         if (window.LESSON_CODE) {
           fetch('lesson_info.php?code=' + encodeURIComponent(window.LESSON_CODE))
             .then(function (r) { return r.json(); })
