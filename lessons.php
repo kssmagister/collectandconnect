@@ -11,7 +11,7 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'ht
 
 $conn = db();
 $lessons = [];
-$stmt = $conn->prepare("SELECT id, code, title, created_at, analysis_requested FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT id, code, title, feedback_question, created_at, analysis_requested FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
 $stmt->bind_param('i', $me);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -52,14 +52,15 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     <div class="form-section">
       <h5>Neue Lektion</h5>
       <form id="addForm" class="form-row align-items-end">
-        <div class="col-md-9 mb-2"><label>Titel der Lektion</label><input class="form-control form-control-sm" id="addTitle" placeholder="z.B. Ablativus Absolutus – Einführung" required></div>
-        <div class="col-md-3 mb-2"><button class="btn btn-primary btn-sm btn-block" type="submit">Anlegen</button></div>
+        <div class="col-md-5 mb-2"><label>Titel der Lektion</label><input class="form-control form-control-sm" id="addTitle" placeholder="z.B. Ablativus Absolutus – Einführung" required></div>
+        <div class="col-md-5 mb-2"><label>Feedback-Frage <span class="text-muted">(optional)</span></label><input class="form-control form-control-sm" id="addQuestion" placeholder="z.B. Beschreibe die Stunde in 3 Wörtern"></div>
+        <div class="col-md-2 mb-2"><button class="btn btn-primary btn-sm btn-block" type="submit">Anlegen</button></div>
       </form>
     </div>
 
     <div class="table-responsive">
       <table class="table table-striped">
-        <thead><tr><th>Titel</th><th>Code</th><th>Link für diese Lektion</th><th>Auswertung</th><th style="width:1%"></th></tr></thead>
+        <thead><tr><th>Lektion &amp; Feedback-Frage</th><th>Code</th><th>Link für diese Lektion</th><th>Auswertung</th><th style="width:1%"></th></tr></thead>
         <tbody>
         <?php if (!$lessons): ?>
           <tr><td colspan="5" class="text-center text-muted">Noch keine Lektionen. Lege oben eine an.</td></tr>
@@ -67,7 +68,10 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
         <?php foreach ($lessons as $l):
             $link = $base . '/?t=' . rawurlencode($teacherCode) . '&l=' . rawurlencode($l['code']); ?>
           <tr data-id="<?php echo (int) $l['id']; ?>">
-            <td><?php echo h($l['title']); ?></td>
+            <td style="min-width:260px">
+              <input class="form-control form-control-sm edit-title mb-1" value="<?php echo h($l['title']); ?>" placeholder="Titel">
+              <input class="form-control form-control-sm edit-question" value="<?php echo h($l['feedback_question']); ?>" placeholder="Feedback-Frage (optional)">
+            </td>
             <td><span class="code-chip"><?php echo h($l['code']); ?></span></td>
             <td>
               <span class="link-box"><?php echo h($link); ?></span>
@@ -80,7 +84,10 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
                 <button class="btn btn-outline-info btn-sm act-req">KI-Auswertung anfordern</button>
               <?php endif; ?>
             </td>
-            <td class="text-nowrap"><button class="btn btn-outline-danger btn-sm act-del">Löschen</button></td>
+            <td class="text-nowrap">
+              <button class="btn btn-outline-primary btn-sm act-save">Speichern</button>
+              <button class="btn btn-outline-danger btn-sm act-del">Löschen</button>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -95,6 +102,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
       <ul class="pl-3 mb-0">
         <li>Lege pro Unterrichtsstunde eine Lektion an (z.B. das Thema).</li>
         <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
+        <li>Die <strong>Feedback-Frage</strong> (optional) wird den Schülern im Feedback-Formular angezeigt – z.B. „Beschreibe die Stunde in 3 Wörtern" (ideal für die Wortwolke). Titel und Frage lassen sich jederzeit ändern und mit „Speichern" übernehmen.</li>
         <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Die Markierung verschwindet, sobald sie erledigt ist.</li>
         <li>Beim Löschen bleiben die Antworten erhalten – sie verlieren nur die Lektionszuordnung.</li>
       </ul>
@@ -108,9 +116,14 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     function post(data){ return $.ajax({url:'lesson_manage.php', type:'POST', dataType:'json', headers:{'X-CSRF-TOKEN':csrf}, data:data}); }
 
     $('#addForm').on('submit', function(e){ e.preventDefault();
-      post({ action:'add', title:$('#addTitle').val() })
+      post({ action:'add', title:$('#addTitle').val(), question:$('#addQuestion').val() })
         .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } })
         .fail(function(){ alert('Fehler.'); });
+    });
+    $('.act-save').on('click', function(){
+      var tr=$(this).closest('tr');
+      post({ action:'edit', id:tr.data('id'), title:tr.find('.edit-title').val(), question:tr.find('.edit-question').val() })
+        .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
     });
     $('.act-del').on('click', function(){
       var tr=$(this).closest('tr');

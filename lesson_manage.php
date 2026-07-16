@@ -25,16 +25,35 @@ function gen_lesson_code(mysqli $conn): string {
 }
 
 if ($action === 'add') {
-    $title = trim($_POST['title'] ?? '');
+    $title    = trim($_POST['title'] ?? '');
+    $question = trim($_POST['question'] ?? '');
     if ($title === '') {
         echo json_encode(['success' => false, 'message' => 'Titel noetig.']); exit;
     }
+    $q = ($question === '') ? null : $question;
     $code = gen_lesson_code($conn);
-    $stmt = $conn->prepare("INSERT INTO lessons (teacher_id, code, title) VALUES (?, ?, ?)");
-    $stmt->bind_param('iss', $me, $code, $title);
+    $stmt = $conn->prepare("INSERT INTO lessons (teacher_id, code, title, feedback_question) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param('isss', $me, $code, $title, $q);
     $ok = $stmt->execute();
     $stmt->close();
     echo json_encode($ok ? ['success' => true, 'code' => $code] : ['success' => false, 'message' => 'Fehler.']);
+    exit;
+}
+
+if ($action === 'edit') {
+    // Titel und/oder Feedback-Frage aendern (nur eigene Lektion).
+    $id       = (int) ($_POST['id'] ?? 0);
+    $title    = trim($_POST['title'] ?? '');
+    $question = trim($_POST['question'] ?? '');
+    if ($id <= 0 || $title === '') {
+        echo json_encode(['success' => false, 'message' => 'Titel noetig.']); exit;
+    }
+    $q = ($question === '') ? null : $question;
+    $stmt = $conn->prepare("UPDATE lessons SET title = ?, feedback_question = ? WHERE id = ? AND teacher_id = ?");
+    $stmt->bind_param('ssii', $title, $q, $id, $me);
+    $ok = $stmt->execute();
+    $stmt->close();
+    echo json_encode($ok ? ['success' => true] : ['success' => false, 'message' => 'Fehler.']);
     exit;
 }
 

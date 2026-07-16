@@ -30,7 +30,7 @@ $initialKlasse = isset($_GET['klasse']) ? (string) $_GET['klasse'] : '';
     #content { flex:1 1 auto; position:relative; overflow:hidden; }
     #grid {
       position:absolute; inset:0; overflow:auto;
-      display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr));
+      display:grid; grid-template-columns:1fr;   /* Karten untereinander (bessere Lesbarkeit) */
       gap:1rem; padding:1.25rem; align-content:start;
     }
     #cloudWrap { position:absolute; inset:0; background:#fff; }
@@ -39,6 +39,7 @@ $initialKlasse = isset($_GET['klasse']) ? (string) $_GET['klasse'] : '';
       background:#fff; border-radius:10px; padding:1.25rem 1.4rem;
       box-shadow:0 2px 8px rgba(0,0,0,0.10); border-left:5px solid #495057;
       display:flex; flex-direction:column;
+      width:100%; max-width:1100px; margin:0 auto;  /* zentriert, nicht zu lange Zeilen */
     }
     .fb-text { font-size:1.35rem; line-height:1.5; color:#212529; white-space:pre-wrap; word-wrap:break-word; flex:1 1 auto; }
     .fb-foot {

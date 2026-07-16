@@ -10,13 +10,15 @@ if ($code === '') { echo json_encode(['success' => false]); exit; }
 
 try {
     $conn = db();
-    $stmt = $conn->prepare("SELECT title FROM lessons WHERE code = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT title, feedback_question FROM lessons WHERE code = ? LIMIT 1");
     $stmt->bind_param('s', $code);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     $conn->close();
-    echo json_encode($row ? ['success' => true, 'title' => $row['title']] : ['success' => false]);
+    echo json_encode($row
+        ? ['success' => true, 'title' => $row['title'], 'question' => $row['feedback_question']]
+        : ['success' => false]);
 } catch (\Throwable $e) {
     echo json_encode(['success' => false]);
 }

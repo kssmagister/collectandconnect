@@ -43,7 +43,15 @@
           fetch('lesson_info.php?code=' + encodeURIComponent(window.LESSON_CODE))
             .then(function (r) { return r.json(); })
             .then(function (ld) {
-              if (ld.success) { el.textContent = 'Für: ' + d.name + ' · Lektion: ' + ld.title; }
+              if (!ld.success) return;
+              el.textContent = 'Für: ' + d.name + ' · Lektion: ' + ld.title;
+              // Optionale Feedback-Frage der Lehrperson anzeigen (falls die Seite ein Feld dafuer hat)
+              window.LESSON_QUESTION = ld.question || '';
+              var q = document.getElementById('lessonQuestion');
+              if (q && window.LESSON_QUESTION) {
+                q.textContent = window.LESSON_QUESTION;
+                q.style.display = 'block';
+              }
             })
             .catch(function () {});
         }

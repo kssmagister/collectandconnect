@@ -20,23 +20,26 @@
     <div id="teacherBanner" style="display:none;"></div>
 
     <form id="feedbackForm">
-      <div class="form-group">
-        <label for="klasse" class="required-label">Klasse</label>
-        <select class="form-control" id="klasse" required>
-          <option value="">-- Klasse wählen --</option>
-          <optgroup label="FMS"><option>1FMS</option><option>2FMS</option><option>3FMS</option></optgroup>
-          <optgroup label="GYM-G"><option>1GYM-G</option><option>2GYM-G</option><option>3GYM-G</option><option>4GYM-G</option></optgroup>
-          <optgroup label="WMS/IMS"><option>1WMS/IMS</option><option>2WMS/IMS</option><option>3WMS/IMS</option></optgroup>
-          <optgroup label="Sonstige"><option>LatInt</option><option>efG</option><option>ffGR</option><option>EXTRA</option></optgroup>
-        </select>
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label for="klasse" class="required-label">Klasse</label>
+          <select class="form-control" id="klasse" required>
+            <option value="">-- Klasse wählen --</option>
+            <optgroup label="FMS"><option>1FMS</option><option>2FMS</option><option>3FMS</option></optgroup>
+            <optgroup label="GYM-G"><option>1GYM-G</option><option>2GYM-G</option><option>3GYM-G</option><option>4GYM-G</option></optgroup>
+            <optgroup label="WMS/IMS"><option>1WMS/IMS</option><option>2WMS/IMS</option><option>3WMS/IMS</option></optgroup>
+            <optgroup label="Sonstige"><option>LatInt</option><option>efG</option><option>ffGR</option><option>EXTRA</option></optgroup>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="nickname">Nickname <span class="text-muted">(optional)</span></label>
+          <input type="text" class="form-control" id="nickname" placeholder="z.B. Löwe23 – freiwillig">
+        </div>
       </div>
 
       <div class="form-group">
-        <label for="nickname">Nickname <span class="text-muted">(optional)</span></label>
-        <input type="text" class="form-control" id="nickname" placeholder="z.B. Löwe23 – freiwillig">
-      </div>
-
-      <div class="form-group">
+        <!-- Frage der Lehrperson (nur wenn zur Lektion hinterlegt) -->
+        <div id="lessonQuestion" class="lesson-question" style="display:none;"></div>
         <label for="text" class="required-label">Dein Feedback</label>
         <textarea class="form-control" id="text" rows="6" placeholder="Schreib hier frei..." required></textarea>
       </div>
