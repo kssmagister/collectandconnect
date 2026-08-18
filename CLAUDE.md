@@ -25,7 +25,8 @@ privaten Ubuntu-Server) per API abgeholt.
 teachers   (id, username UNIQUE, password_hash [bcrypt], name, code UNIQUE, is_admin,
             classes [JSON-Array, persoenliche Klassenauswahl; NULL = alle], created_at)
 lessons    (id, teacher_id, code UNIQUE, title, feedback_question, created_at,
-            analysis_requested, analysis_requested_at)
+            analysis_requested, analysis_requested_at,
+            last_report_url NULL, last_report_at NULL)   -- 008, siehe unten
 submissions(id, teacher_id, lesson_id NULL, form_type, klasse, nickname NULL,
             payload JSON, created_at)
 login_attempts (id, ip, created_at)          -- Rate-Limit, legt login.php selbst an
@@ -34,6 +35,10 @@ login_attempts (id, ip, created_at)          -- Rate-Limit, legt login.php selbs
 Migrationen 001–006 liegen in `migrations/` und sind **alle ausgeführt**.
 `form_type`: `feedback` | `exit_ticket` | `strukturiert`; die typ-spezifischen Felder
 stehen als JSON in `payload`.
+
+⚠️ **008 (`last_report_url`/`last_report_at` auf `lessons`) muss vor dem naechsten
+Deploy manuell in phpMyAdmin ausgefuehrt werden** – additiv, aber `lessons.php`
+selektiert die Spalten direkt, ohne Fallback.
 
 ---
 
@@ -61,7 +66,10 @@ stehen als JSON in `payload`.
 - **DRP-Anbindung:** `api_structured_data.php` (API-Key im Header `X-API-Key` = `PYTHON_API_KEY`;
   Filter `teacher`, `lesson`, `form_type`, `since`, `limit`) und
   `api_analysis_queue.php` (Pull-Warteschlange: „KI-Auswertung anfordern" im Web →
-  Ubuntu-Server holt sie ab → `POST action=done`).
+  Ubuntu-Server holt sie ab → `POST action=done[&report_url=...]`). Ist `report_url`
+  dabei (gueltiger URL, sonst ignoriert), landet er in `lessons.last_report_url`/
+  `last_report_at` und `lessons.php` zeigt „📄 Bericht ansehen" statt dass die
+  Markierung spurlos verschwindet.
 
 ## Wichtige Dateien
 

@@ -11,7 +11,7 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'ht
 
 $conn = db();
 $lessons = [];
-$stmt = $conn->prepare("SELECT id, code, title, feedback_question, created_at, analysis_requested FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT id, code, title, feedback_question, created_at, analysis_requested, last_report_url, last_report_at FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
 $stmt->bind_param('i', $me);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -80,6 +80,13 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
             <td>
               <?php if (!empty($l['analysis_requested'])): ?>
                 <span class="badge badge-warning">⏳ angefordert</span>
+              <?php elseif (!empty($l['last_report_url'])): ?>
+                <a href="<?php echo h($l['last_report_url']); ?>" target="_blank" rel="noopener"
+                   class="btn btn-outline-success btn-sm">📄 Bericht ansehen</a>
+                <?php if ($l['last_report_at']): ?>
+                  <div class="text-muted" style="font-size:11px;"><?php echo h(date('d.m.Y H:i', strtotime($l['last_report_at']))); ?></div>
+                <?php endif; ?>
+                <button class="btn btn-link btn-sm p-0 act-req">neu anfordern</button>
               <?php else: ?>
                 <button class="btn btn-outline-info btn-sm act-req">KI-Auswertung anfordern</button>
               <?php endif; ?>
@@ -103,7 +110,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
         <li>Lege pro Unterrichtsstunde eine Lektion an (z.B. das Thema).</li>
         <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
         <li>Die <strong>Feedback-Frage</strong> (optional) wird den Schülern im Feedback-Formular angezeigt – z.B. „Beschreibe die Stunde in 3 Wörtern" (ideal für die Wortwolke). Titel und Frage lassen sich jederzeit ändern und mit „Speichern" übernehmen.</li>
-        <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Die Markierung verschwindet, sobald sie erledigt ist.</li>
+        <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Sobald er fertig ist, erscheint hier ein Link „📄 Bericht ansehen" (falls dein Server das Web-Frontend anbietet).</li>
         <li>Beim Löschen bleiben die Antworten erhalten – sie verlieren nur die Lektionszuordnung.</li>
       </ul>
     </div>

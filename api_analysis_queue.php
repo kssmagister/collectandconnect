@@ -2,7 +2,7 @@
 // Warteschlange fuer angeforderte Lektions-Auswertungen.
 // Authentifizierung per API-Key (X-API-Key), wie api_structured_data.php.
 //   GET  -> Liste offener Anforderungen [{lesson_code, title, teacher_code}]
-//   POST action=done&lesson=CODE -> Anforderung als erledigt markieren
+//   POST action=done&lesson=CODE[&report_url=...] -> Anforderung als erledigt markieren
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
@@ -24,8 +24,21 @@ try {
         $action = $_POST['action'] ?? '';
         $lesson = trim($_POST['lesson'] ?? '');
         if ($action === 'done' && $lesson !== '') {
-            $stmt = $conn->prepare("UPDATE lessons SET analysis_requested = 0 WHERE code = ?");
-            $stmt->bind_param('s', $lesson);
+            // Optionaler Link zum fertigen Bericht (DRP-Web-Frontend). Ungueltige
+            // Werte (kein URL) werden ignoriert - die Anforderung gilt trotzdem als erledigt.
+            $reportUrl = trim($_POST['report_url'] ?? '');
+            if ($reportUrl !== '' && !filter_var($reportUrl, FILTER_VALIDATE_URL)) {
+                $reportUrl = '';
+            }
+            if ($reportUrl !== '') {
+                $stmt = $conn->prepare(
+                    "UPDATE lessons SET analysis_requested = 0, last_report_url = ?, last_report_at = NOW() WHERE code = ?"
+                );
+                $stmt->bind_param('ss', $reportUrl, $lesson);
+            } else {
+                $stmt = $conn->prepare("UPDATE lessons SET analysis_requested = 0 WHERE code = ?");
+                $stmt->bind_param('s', $lesson);
+            }
             $stmt->execute();
             $stmt->close();
             echo json_encode(['success' => true]);
