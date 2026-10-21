@@ -32,13 +32,15 @@ submissions(id, teacher_id, lesson_id NULL, form_type, klasse, nickname NULL,
 login_attempts (id, ip, created_at)          -- Rate-Limit, legt login.php selbst an
 ```
 
-Migrationen 001–006 liegen in `migrations/` und sind **alle ausgeführt**.
+Migrationen 001–008 liegen in `migrations/` und sind **alle ausgeführt** (007 `teachers.classes`
+und 008 am 2026-10-21 in phpMyAdmin geprüft).
 `form_type`: `feedback` | `exit_ticket` | `strukturiert`; die typ-spezifischen Felder
 stehen als JSON in `payload`.
 
-⚠️ **008 (`last_report_url`/`last_report_at` auf `lessons`) muss vor dem naechsten
-Deploy manuell in phpMyAdmin ausgefuehrt werden** – additiv, aber `lessons.php`
-selektiert die Spalten direkt, ohne Fallback.
+✅ **008 (`last_report_url`/`last_report_at` auf `lessons`) ist ausgefuehrt** (in
+phpMyAdmin geprueft am 2026-10-21: beide Spalten existieren in `rutzimp_pensum2023`).
+Hinweis fuer kuenftige Migrationen: `lessons.php` selektiert die Spalten direkt, ohne
+Fallback – additive Migrationen immer *vor* dem Deploy ausfuehren.
 
 ---
 
