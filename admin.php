@@ -13,6 +13,16 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
 // Persoenliche Klassenauswahl (leer = alle Klassen)
 $conn = db();
 $myClasses = teacher_classes($conn, current_teacher_id());
+$myLessons = [];
+$ls = $conn->prepare('SELECT l.id, l.title, COUNT(s.id) AS n
+                      FROM lessons l LEFT JOIN submissions s ON s.lesson_id = l.id
+                      WHERE l.teacher_id = ? GROUP BY l.id, l.title ORDER BY l.created_at DESC');
+$tid = current_teacher_id();
+$ls->bind_param('i', $tid);
+$ls->execute();
+$lr = $ls->get_result();
+while ($row = $lr->fetch_assoc()) { $myLessons[] = $row; }
+$ls->close();
 $conn->close();
 $classGroups = all_classes();
 ?>
@@ -127,6 +137,35 @@ $classGroups = all_classes();
         </div>
         <button type="submit" class="btn btn-primary btn-sm btn-block mt-2">Filter anwenden</button>
       </form>
+    </div>
+
+    <!-- Lektions-Export -->
+    <div class="entry-card">
+      <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+        <strong style="font-size:14px;">Lektionen exportieren</strong>
+        <span>
+          <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="lessonAll">alle</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="lessonNone">keine</button>
+        </span>
+      </div>
+      <div id="lessonList" style="max-height:180px; overflow:auto; font-size:13px;">
+        <?php foreach ($myLessons as $l): ?>
+          <div class="form-check">
+            <input class="form-check-input lesson-cb" type="checkbox" value="<?php echo (int)$l['id']; ?>" id="les<?php echo (int)$l['id']; ?>">
+            <label class="form-check-label" for="les<?php echo (int)$l['id']; ?>"><?php echo htmlspecialchars((string)$l['title'], ENT_QUOTES); ?> <span class="text-muted">(<?php echo (int)$l['n']; ?>)</span></label>
+          </div>
+        <?php endforeach; ?>
+        <div class="form-check">
+          <input class="form-check-input lesson-cb" type="checkbox" value="0" id="les0">
+          <label class="form-check-label" for="les0"><em>Ohne Lektion</em></label>
+        </div>
+      </div>
+      <div class="mt-2">
+        <button type="button" class="btn btn-success btn-sm lesson-export" data-fmt="csv">CSV</button>
+        <button type="button" class="btn btn-info btn-sm lesson-export" data-fmt="json">JSON</button>
+        <button type="button" class="btn btn-secondary btn-sm lesson-export" data-fmt="md">Markdown</button>
+        <span class="text-muted ml-2" style="font-size:12px;">Die Filter oben gelten hier nicht.</span>
+      </div>
     </div>
 
     <div id="entries"><p class="text-center text-muted">Lädt…</p></div>
@@ -253,6 +292,51 @@ $classGroups = all_classes();
     $('#exportJSON').on('click', function(){
       if(!allEntries.length){ alert('Keine Daten.'); return; }
       dl(new Blob([JSON.stringify(allEntries,null,2)],{type:'application/json'}), 'antworten_'+today()+'.json');
+    });
+    // Export einzelner Lektionen (CSV / JSON / Markdown), unabhaengig von den Filtern oben
+    $('#lessonAll').on('click', function(){ $('.lesson-cb').prop('checked', true); });
+    $('#lessonNone').on('click', function(){ $('.lesson-cb').prop('checked', false); });
+    $('.lesson-export').on('click', function(){
+      const fmt = $(this).data('fmt');
+      const ids = $('.lesson-cb:checked').map(function(){ return this.value; }).get();
+      if(!ids.length){ alert('Bitte mindestens eine Lektion auswählen.'); return; }
+      $.getJSON('getSubmissions.php', { lessons: ids.join(','), sort: 'asc' })
+        .done(function(resp){
+          if(!resp.success || !resp.data.length){ alert('Keine Daten in der Auswahl.'); return; }
+          const d = resp.data, name = 'lektionen_'+today();
+          if(fmt==='json'){
+            dl(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}), name+'.json');
+          } else if(fmt==='csv'){
+            const q = s => '"'+String(s==null?'':s).replace(/"/g,'""')+'"';
+            let csv='ID;Lektion;Typ;Klasse;Nickname;Zeit;Inhalt\n';
+            d.forEach(function(e){
+              const inhalt = Object.keys(e.payload||{}).map(k=>(FIELD_LABELS[k]||k)+': '+e.payload[k]).join(' | ');
+              csv += [e.id, q(e.lesson_title||''), q(TYPE_LABELS[e.form_type]||e.form_type), q(e.klasse), q(e.nickname||''), q(e.created_at), q(inhalt)].join(';')+'\n';
+            });
+            dl(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'}), name+'.csv');
+          } else {
+            const groups = {}, order = [];
+            d.forEach(function(e){
+              const t = e.lesson_title || 'Ohne Lektion';
+              if(!groups[t]){ groups[t]=[]; order.push(t); }
+              groups[t].push(e);
+            });
+            let md = '# Antworten nach Lektion\n\n';
+            order.forEach(function(t){
+              md += '## '+t+' ('+groups[t].length+')\n\n';
+              groups[t].forEach(function(e){
+                md += '### '+(TYPE_LABELS[e.form_type]||e.form_type)+' · '+e.klasse+(e.nickname?' · '+e.nickname:'')+' · '+e.created_at+'\n\n';
+                Object.keys(e.payload||{}).forEach(function(k){
+                  const v = String(e.payload[k]).replace(/\n/g,'\n  ');
+                  md += '- **'+(FIELD_LABELS[k]||k)+':** '+v+'\n';
+                });
+                md += '\n';
+              });
+            });
+            dl(new Blob([md],{type:'text/markdown;charset=utf-8;'}), name+'.md');
+          }
+        })
+        .fail(function(xhr){ if(xhr.status===401){ window.location.href='login.html'; return; } alert('Fehler beim Laden.'); });
     });
     function today(){ return new Date().toISOString().slice(0,10); }
     function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }

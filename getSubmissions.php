@@ -24,6 +24,21 @@ if ($formType !== '') { $sql .= ' AND s.form_type = ?'; $params[] = $formType; $
 if ($klasse !== '')   { $sql .= ' AND s.klasse = ?';    $params[] = $klasse;   $types .= 's'; }
 if ($nickname !== '') { $sql .= ' AND s.nickname LIKE ?'; $params[] = '%' . $nickname . '%'; $types .= 's'; }
 
+// Optional: Auswahl von Lektionen (kommagetrennte IDs; 0 = Antworten ohne Lektion)
+$lessonsRaw = isset($_GET['lessons']) ? trim($_GET['lessons']) : '';
+if ($lessonsRaw !== '') {
+    $ids = array_values(array_unique(array_map('intval', explode(',', $lessonsRaw))));
+    $withNull = in_array(0, $ids, true);
+    $ids = array_values(array_filter($ids, function ($i) { return $i > 0; }));
+    $cond = [];
+    if ($ids) {
+        $cond[] = 's.lesson_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
+        foreach ($ids as $i) { $params[] = $i; $types .= 'i'; }
+    }
+    if ($withNull) { $cond[] = 's.lesson_id IS NULL'; }
+    if ($cond) { $sql .= ' AND (' . implode(' OR ', $cond) . ')'; }
+}
+
 $sql .= " ORDER BY s.created_at $sort";
 
 $conn = db();
