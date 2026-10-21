@@ -131,6 +131,35 @@ assets/style.css, assets/common.js
 ## Verwandtes Projekt
 
 **DRP** (Didactic Reflection Platform): lokales Python-Tool auf dem Ubuntu-Server
-(`~/drp`, lokal `C:\Users\RutzD\projects\drp`), zieht Feedback über die API, analysiert es
+(`~/drp`), zieht Feedback über die API, analysiert es
 mit **lokalem Ollama** (Datenschutz!) und erzeugt belegte Reflexionsberichte.
 Siehe dort `README.md` und `ROADMAP.md`.
+
+### Schnittstelle collectandconnect ⇄ DRP
+
+Zwei getrennte Repos/Server (Datenschutz: Schülerdaten werden nur lokal ausgewertet).
+Die Kopplung läuft **ausschliesslich** über diese API (Hostpoint, `https://…/collectandconnect/`),
+Authentifizierung per Header `X-API-Key` (= `PYTHON_API_KEY` in der `.env` von collectandconnect,
+`DRP_API_KEY` in der `.env` von DRP; nie per GET-Parameter).
+
+| Endpunkt | Methode | Zweck |
+|---|---|---|
+| `api_structured_data.php` | GET | Rückmeldungen holen. Filter: `form_type`, `teacher` (Lehrer-Code), `lesson` (Lektions-Code), `since`, `limit`. Liefert u. a. `lesson_code`, `lesson_title`, `klasse`, `nickname`, `payload`, `text`, `created_at`. |
+| `api_analysis_queue.php` | GET | Offene Auswertungs-Anforderungen: `[{lesson_code, title, teacher_code}]`. |
+| `api_analysis_queue.php` | POST `action=done&lesson=CODE[&report_url=URL]` | Anforderung erledigt; optionale `report_url` (muss gültige URL sein, sonst ignoriert) landet in `lessons.last_report_url`/`last_report_at`. |
+
+**Ablauf:** Lehrperson klickt in `lessons.php` „KI-Auswertung anfordern" (`lessons.analysis_requested=1`)
+→ DRP fragt per Cron (alle 5 Min., Pull – der Heimserver ist von aussen nicht erreichbar) die Queue ab
+→ holt die Rückmeldungen, erzeugt den Bericht lokal (Ollama) → meldet `done` + Bericht-Link zurück
+(Link zeigt auf `DRP_WEB_BASE_URL`, nur im Heimnetz erreichbar).
+
+**Voraussetzungen im Schema (collectandconnect-Migrationen):** `005` Queue-Spalten auf `lessons`,
+`008` `lessons.last_report_url`/`last_report_at`. `lessons.php` selektiert diese Spalten direkt, ohne
+Fallback.
+
+**Bei Änderungen an der Schnittstelle (Reihenfolge):**
+1. Additive Migration in phpMyAdmin ausführen (vor dem Deploy).
+2. collectandconnect deployen (Push auf `main` → GitHub Action → FTPS).
+3. Erst dann DRP anpassen/neu bauen (`docker compose build drp`).
+Felder der API nur **ergänzen**, nicht umbenennen/entfernen, solange die andere Seite noch die alte Version fährt.
+Commit-Messages verweisen auf das Gegenstück im anderen Repo.
