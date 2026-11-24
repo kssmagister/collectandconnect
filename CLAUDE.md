@@ -26,7 +26,8 @@ teachers   (id, username UNIQUE, password_hash [bcrypt], name, code UNIQUE, is_a
             classes [JSON-Array, persoenliche Klassenauswahl; NULL = alle], created_at)
 lessons    (id, teacher_id, code UNIQUE, title, feedback_question, created_at,
             analysis_requested, analysis_requested_at,
-            last_report_url NULL, last_report_at NULL)   -- 008, siehe unten
+            last_report_url NULL, last_report_at NULL,   -- 008, siehe unten
+            is_hidden TINYINT(1) DEFAULT 0)              -- 009, siehe unten
 submissions(id, teacher_id, lesson_id NULL, form_type, klasse, nickname NULL,
             payload JSON, created_at)
 login_attempts (id, ip, created_at)          -- Rate-Limit, legt login.php selbst an
@@ -41,6 +42,12 @@ stehen als JSON in `payload`.
 phpMyAdmin geprueft am 2026-10-21: beide Spalten existieren in `rutzimp_pensum2023`).
 Hinweis fuer kuenftige Migrationen: `lessons.php` selektiert die Spalten direkt, ohne
 Fallback – additive Migrationen immer *vor* dem Deploy ausfuehren.
+
+⚠️ **009 (`lessons.is_hidden`) muss vor dem Deploy in phpMyAdmin ausgefuehrt werden** –
+`getSubmissions.php`, `api_*` und `lessons.php` nutzen die Spalte direkt. Ausgeblendete
+Lektionen + ihre Antworten fallen aus Admin-Liste, Beamer, DRP-API und Analyse-Queue heraus
+(der Lektions-Export im Admin findet sie weiterhin). „Löschen“ einer Lektion entfernt jetzt
+auch ihre Antworten (vorher: nur Zuordnung lösen).
 
 ---
 

@@ -11,11 +11,14 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'ht
 
 $conn = db();
 $lessons = [];
-$stmt = $conn->prepare("SELECT id, code, title, feedback_question, created_at, analysis_requested, last_report_url, last_report_at FROM lessons WHERE teacher_id = ? ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT l.id, l.code, l.title, l.feedback_question, l.created_at, l.analysis_requested, l.last_report_url, l.last_report_at, l.is_hidden,
+                               (SELECT COUNT(*) FROM submissions s WHERE s.lesson_id = l.id) AS n
+                        FROM lessons l WHERE l.teacher_id = ? ORDER BY l.is_hidden ASC, l.created_at DESC");
 $stmt->bind_param('i', $me);
 $stmt->execute();
 $res = $stmt->get_result();
-while ($row = $res->fetch_assoc()) { $lessons[] = $row; }
+$nHidden = 0;
+while ($row = $res->fetch_assoc()) { $lessons[] = $row; if ($row['is_hidden']) { $nHidden++; } }
 $stmt->close();
 $conn->close();
 
@@ -58,6 +61,12 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
       </form>
     </div>
 
+    <?php if ($nHidden): ?>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="showHidden">
+        <label class="form-check-label" for="showHidden">Ausgeblendete Lektionen anzeigen (<?php echo (int) $nHidden; ?>)</label>
+      </div>
+    <?php endif; ?>
     <div class="table-responsive">
       <table class="table table-striped">
         <thead><tr><th>Lektion &amp; Feedback-Frage</th><th>Code</th><th>Link für diese Lektion</th><th>Auswertung</th><th style="width:1%"></th></tr></thead>
@@ -67,8 +76,9 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
         <?php endif; ?>
         <?php foreach ($lessons as $l):
             $link = $base . '/?t=' . rawurlencode($teacherCode) . '&l=' . rawurlencode($l['code']); ?>
-          <tr data-id="<?php echo (int) $l['id']; ?>">
+          <tr data-id="<?php echo (int) $l['id']; ?>" data-n="<?php echo (int) $l['n']; ?>"<?php if ($l['is_hidden']): ?> class="row-hidden" style="display:none; opacity:.6;"<?php endif; ?>>
             <td style="min-width:260px">
+              <?php if ($l['is_hidden']): ?><span class="badge badge-secondary mb-1">ausgeblendet</span><?php endif; ?>
               <input class="form-control form-control-sm edit-title mb-1" value="<?php echo h($l['title']); ?>" placeholder="Titel">
               <input class="form-control form-control-sm edit-question" value="<?php echo h($l['feedback_question']); ?>" placeholder="Feedback-Frage (optional)">
             </td>
@@ -93,6 +103,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
             </td>
             <td class="text-nowrap">
               <button class="btn btn-outline-primary btn-sm act-save">Speichern</button>
+              <button class="btn btn-outline-secondary btn-sm act-hide" data-hidden="<?php echo $l['is_hidden'] ? 0 : 1; ?>"><?php echo $l['is_hidden'] ? 'Einblenden' : 'Ausblenden'; ?></button>
               <button class="btn btn-outline-danger btn-sm act-del">Löschen</button>
             </td>
           </tr>
@@ -111,7 +122,8 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
         <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
         <li>Die <strong>Feedback-Frage</strong> (optional) wird den Schülern im Feedback-Formular angezeigt – z.B. „Beschreibe die Stunde in 3 Wörtern" (ideal für die Wortwolke). Titel und Frage lassen sich jederzeit ändern und mit „Speichern" übernehmen.</li>
         <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Sobald er fertig ist, erscheint hier ein Link „📄 Bericht ansehen" (falls dein Server das Web-Frontend anbietet).</li>
-        <li>Beim Löschen bleiben die Antworten erhalten – sie verlieren nur die Lektionszuordnung.</li>
+        <li><strong>Ausblenden</strong> nimmt die Lektion samt ihren Antworten aus Admin-Liste, Beamer und KI-Auswertung heraus – nichts geht verloren, mit „Einblenden" ist alles wieder da. Ausgeblendete Lektionen siehst du hier über die Checkbox; im Admin lassen sie sich weiterhin exportieren.</li>
+        <li><strong>Löschen</strong> entfernt die Lektion <strong>und alle zugehörigen Antworten unwiderruflich</strong>.</li>
       </ul>
     </div>
   </div></div></div>
@@ -134,10 +146,18 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     });
     $('.act-del').on('click', function(){
       var tr=$(this).closest('tr');
-      if(!confirm('Diese Lektion löschen? (Antworten bleiben erhalten)')) return;
+      var n=tr.data('n');
+      if(!confirm('Diese Lektion UND ihre '+n+' Antwort(en) unwiderruflich löschen?
+(Zum Verstecken ohne Datenverlust: „Ausblenden")')) return;
       post({ action:'delete', id:tr.data('id') })
         .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
     });
+    $('.act-hide').on('click', function(){
+      var tr=$(this).closest('tr');
+      post({ action:'hide', id:tr.data('id'), hidden:$(this).data('hidden') })
+        .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
+    });
+    $('#showHidden').on('change', function(){ $('.row-hidden').toggle(this.checked); });
     $('.act-req').on('click', function(){
       var tr=$(this).closest('tr');
       post({ action:'request', id:tr.data('id') })

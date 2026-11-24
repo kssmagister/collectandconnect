@@ -31,7 +31,7 @@ $sql = 'SELECT s.id, s.teacher_id, s.lesson_id, l.code AS lesson_code, l.title A
                s.form_type, s.klasse, s.nickname, s.payload, s.created_at
         FROM submissions s
         LEFT JOIN lessons l ON l.id = s.lesson_id
-        WHERE 1=1';
+        WHERE (l.id IS NULL OR l.is_hidden = 0)';
 $params = [];
 $types = '';
 

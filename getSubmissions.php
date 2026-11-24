@@ -37,6 +37,9 @@ if ($lessonsRaw !== '') {
     }
     if ($withNull) { $cond[] = 's.lesson_id IS NULL'; }
     if ($cond) { $sql .= ' AND (' . implode(' OR ', $cond) . ')'; }
+} else {
+    // Ohne explizite Lektionswahl: Antworten ausgeblendeter Lektionen weglassen
+    $sql .= ' AND (l.id IS NULL OR l.is_hidden = 0)';
 }
 
 $sql .= " ORDER BY s.created_at $sort";

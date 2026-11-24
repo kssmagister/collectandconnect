@@ -14,9 +14,9 @@ $shareLink = $base . '/?t=' . rawurlencode($teacherCode);
 $conn = db();
 $myClasses = teacher_classes($conn, current_teacher_id());
 $myLessons = [];
-$ls = $conn->prepare('SELECT l.id, l.title, COUNT(s.id) AS n
+$ls = $conn->prepare('SELECT l.id, l.title, l.is_hidden, COUNT(s.id) AS n
                       FROM lessons l LEFT JOIN submissions s ON s.lesson_id = l.id
-                      WHERE l.teacher_id = ? GROUP BY l.id, l.title ORDER BY l.created_at DESC');
+                      WHERE l.teacher_id = ? GROUP BY l.id, l.title, l.is_hidden ORDER BY l.created_at DESC');
 $tid = current_teacher_id();
 $ls->bind_param('i', $tid);
 $ls->execute();
@@ -152,7 +152,7 @@ $classGroups = all_classes();
         <?php foreach ($myLessons as $l): ?>
           <div class="form-check">
             <input class="form-check-input lesson-cb" type="checkbox" value="<?php echo (int)$l['id']; ?>" id="les<?php echo (int)$l['id']; ?>">
-            <label class="form-check-label" for="les<?php echo (int)$l['id']; ?>"><?php echo htmlspecialchars((string)$l['title'], ENT_QUOTES); ?> <span class="text-muted">(<?php echo (int)$l['n']; ?>)</span></label>
+            <label class="form-check-label" for="les<?php echo (int)$l['id']; ?>"><?php echo htmlspecialchars((string)$l['title'], ENT_QUOTES); ?> <span class="text-muted">(<?php echo (int)$l['n']; ?>)</span><?php if ($l['is_hidden']): ?> <span class="badge badge-secondary">ausgeblendet</span><?php endif; ?></label>
           </div>
         <?php endforeach; ?>
         <div class="form-check">

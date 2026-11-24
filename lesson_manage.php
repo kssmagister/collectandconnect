@@ -1,5 +1,5 @@
 <?php
-// Lektionen-Aktionen der eingeloggten Lehrperson (CSRF-geschuetzt): add / delete.
+// Lektionen-Aktionen der eingeloggten Lehrperson (CSRF-geschuetzt): add / edit / delete / hide / request.
 // Jede Lehrperson verwaltet NUR ihre eigenen Lektionen.
 require_once __DIR__ . '/db.php';
 
@@ -62,8 +62,8 @@ if ($action === 'delete') {
     if ($id <= 0) { echo json_encode(['success' => false, 'message' => 'Ungueltig.']); exit; }
     $conn->begin_transaction();
     try {
-        // Zuordnung in Antworten loesen (Antworten selbst bleiben erhalten)
-        $u = $conn->prepare("UPDATE submissions SET lesson_id = NULL WHERE lesson_id = ? AND teacher_id = ?");
+        // Lektion samt zugehoerigen Antworten loeschen (nur eigene)
+        $u = $conn->prepare("DELETE FROM submissions WHERE lesson_id = ? AND teacher_id = ?");
         $u->bind_param('ii', $id, $me); $u->execute(); $u->close();
         $d = $conn->prepare("DELETE FROM lessons WHERE id = ? AND teacher_id = ?");
         $d->bind_param('ii', $id, $me); $d->execute(); $d->close();
@@ -73,6 +73,19 @@ if ($action === 'delete') {
         $conn->rollback();
         echo json_encode(['success' => false, 'message' => 'Fehler beim Loeschen.']);
     }
+    exit;
+}
+
+if ($action === 'hide') {
+    // Lektion (und ihre Antworten) aus Admin/Beamer/API aus- bzw. wieder einblenden.
+    $id     = (int) ($_POST['id'] ?? 0);
+    $hidden = empty($_POST['hidden']) ? 0 : 1;
+    if ($id <= 0) { echo json_encode(['success' => false, 'message' => 'Ungueltig.']); exit; }
+    $stmt = $conn->prepare("UPDATE lessons SET is_hidden = ? WHERE id = ? AND teacher_id = ?");
+    $stmt->bind_param('iii', $hidden, $id, $me);
+    $ok = $stmt->execute();
+    $stmt->close();
+    echo json_encode($ok ? ['success' => true] : ['success' => false, 'message' => 'Fehler.']);
     exit;
 }
 

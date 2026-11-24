@@ -49,7 +49,7 @@ try {
         $sql = "SELECT l.code AS lesson_code, l.title, t.code AS teacher_code
                 FROM lessons l
                 JOIN teachers t ON t.id = l.teacher_id
-                WHERE l.analysis_requested = 1
+                WHERE l.analysis_requested = 1 AND l.is_hidden = 0
                 ORDER BY l.analysis_requested_at ASC";
         $res = $conn->query($sql);
         $data = [];
