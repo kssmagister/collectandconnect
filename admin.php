@@ -142,7 +142,7 @@ $classGroups = all_classes();
     <!-- Lektions-Export -->
     <div class="entry-card">
       <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
-        <strong style="font-size:14px;">Lektionen exportieren</strong>
+        <strong style="font-size:14px;">Lektionen exportieren / löschen</strong>
         <span>
           <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="lessonAll">alle</button>
           <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="lessonNone">keine</button>
@@ -164,6 +164,7 @@ $classGroups = all_classes();
         <button type="button" class="btn btn-success btn-sm lesson-export" data-fmt="csv">CSV</button>
         <button type="button" class="btn btn-info btn-sm lesson-export" data-fmt="json">JSON</button>
         <button type="button" class="btn btn-secondary btn-sm lesson-export" data-fmt="md">Markdown</button>
+        <button type="button" class="btn btn-danger btn-sm ml-2" id="lessonDelete">Antworten der Auswahl löschen</button>
         <span class="text-muted ml-2" style="font-size:12px;">Die Filter oben gelten hier nicht.</span>
       </div>
     </div>
@@ -182,7 +183,8 @@ $classGroups = all_classes();
         <li><strong>Dein Link für Schüler</strong> steht oben — teile ihn (z.B. per QR-Code/Beamer). Nur darüber landen Antworten bei dir.</li>
         <li><strong>Filter</strong> nach Typ/Klasse/Nickname; die Statistik zeigt u.a. die Ø-Sicherheit der Exit-Tickets.</li>
         <li><strong>🖥 Beamer (Feedback)</strong> öffnet die Präsentationsansicht (Karten oder Wortwolke, Vollbild).</li>
-        <li><strong>CSV/JSON</strong> exportiert die aktuelle Auswahl; <strong>Löschen</strong> entfernt deine Einträge (nur den gewählten Typ, falls gefiltert).</li>
+        <li>Im Kasten <strong>Lektionen exportieren / löschen</strong> wählst du einzelne Lektionen und lädst sie als CSV/JSON/Markdown herunter oder löschst ihre Antworten (die Lektion selbst bleibt).</li>
+        <li><strong>CSV/JSON</strong> oben exportiert die aktuelle Auswahl; <strong>Löschen</strong> entfernt deine Einträge (nur den gewählten Typ, falls gefiltert).</li>
         <?php if ($isAdmin): ?><li><strong>Konten verwalten</strong> (nur Admin): weitere Lehrpersonen anlegen — jede mit eigenem Login und eigenem Link.</li><?php endif; ?>
       </ul>
     </div>
@@ -337,6 +339,20 @@ $classGroups = all_classes();
           }
         })
         .fail(function(xhr){ if(xhr.status===401){ window.location.href='login.html'; return; } alert('Fehler beim Laden.'); });
+    });
+    // Antworten gewaehlter Lektionen loeschen (die Lektion selbst bleibt bestehen)
+    $('#lessonDelete').on('click', function(){
+      const ids = $('.lesson-cb:checked').map(function(){ return this.value; }).get();
+      if(!ids.length){ alert('Bitte mindestens eine Lektion auswählen.'); return; }
+      const names = $('.lesson-cb:checked').map(function(){ return '• '+$(this).next('label').text().replace(/\s+/g,' ').trim(); }).get().join('\n');
+      if(!confirm('Alle Antworten dieser Lektionen unwiderruflich löschen?\n\n'+names)) return;
+      $.ajax({
+        url: 'clearSubmissions.php', type: 'POST', dataType: 'json',
+        headers: { 'X-CSRF-TOKEN': csrfToken },
+        data: { lessons: ids.join(',') }
+      })
+        .done(function(r){ if(r.success){ alert(r.deleted+' Antwort(en) gelöscht.'); location.reload(); } else { alert('Fehler: '+r.message); } })
+        .fail(function(xhr){ alert('Fehler beim Löschen' + (xhr.status===403 ? ' (CSRF/Session abgelaufen – bitte neu anmelden).' : '.')); });
     });
     function today(){ return new Date().toISOString().slice(0,10); }
     function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }

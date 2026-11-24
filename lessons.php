@@ -147,8 +147,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     $('.act-del').on('click', function(){
       var tr=$(this).closest('tr');
       var n=tr.data('n');
-      if(!confirm('Diese Lektion UND ihre '+n+' Antwort(en) unwiderruflich löschen?
-(Zum Verstecken ohne Datenverlust: „Ausblenden")')) return;
+      if(!confirm('Diese Lektion UND ihre '+n+' Antwort(en) unwiderruflich löschen?\n(Zum Verstecken ohne Datenverlust: „Ausblenden“)')) return;
       post({ action:'delete', id:tr.data('id') })
         .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
     });
