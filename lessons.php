@@ -11,7 +11,7 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'ht
 
 $conn = db();
 $lessons = [];
-$stmt = $conn->prepare("SELECT l.id, l.code, l.title, l.feedback_question, l.created_at, l.analysis_requested, l.last_report_url, l.last_report_at, l.is_hidden,
+$stmt = $conn->prepare("SELECT l.id, l.code, l.title, l.feedback_question, l.created_at, l.analysis_requested, l.last_report_url, l.last_report_at, l.is_hidden, l.form_type,
                                l.last_error, l.last_error_at,
                                (SELECT COUNT(*) FROM submissions s WHERE s.lesson_id = l.id) AS n
                         FROM lessons l WHERE l.teacher_id = ? ORDER BY l.is_hidden ASC, l.created_at DESC");
@@ -24,6 +24,16 @@ $stmt->close();
 $conn->close();
 
 function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
+$formTypes = form_types();
+// <option>-Liste fuer das Antworttool; '' = Schueler waehlen selbst auf der Startseite.
+function form_type_options(array $formTypes, ?string $selected): string {
+    $html = '<option value="">Schüler wählen selbst</option>';
+    foreach ($formTypes as $key => $label) {
+        $sel = ($selected === $key) ? ' selected' : '';
+        $html .= '<option value="' . h($key) . '"' . $sel . '>' . h($label) . '</option>';
+    }
+    return $html;
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -56,9 +66,12 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     <div class="form-section">
       <h5>Neue Lektion</h5>
       <form id="addForm" class="form-row align-items-end">
-        <div class="col-md-5 mb-2"><label>Titel der Lektion</label><input class="form-control form-control-sm" id="addTitle" placeholder="z.B. Ablativus Absolutus – Einführung" required></div>
-        <div class="col-md-5 mb-2"><label>Feedback-Frage <span class="text-muted">(optional)</span></label><input class="form-control form-control-sm" id="addQuestion" placeholder="z.B. Beschreibe die Stunde in 3 Wörtern"></div>
-        <div class="col-md-2 mb-2"><button class="btn btn-primary btn-sm btn-block" type="submit">Anlegen</button></div>
+        <div class="col-md-4 mb-2"><label>Titel der Lektion</label><input class="form-control form-control-sm" id="addTitle" placeholder="z.B. Ablativus Absolutus – Einführung" required></div>
+        <div class="col-md-3 mb-2"><label>Antworttool</label>
+          <select class="form-control form-control-sm" id="addFormType"><?php echo form_type_options($formTypes, null); ?></select></div>
+        <div class="col-md-5 mb-2"><label>Frage / Aufgabe <span class="text-muted">(optional)</span></label>
+          <textarea class="form-control form-control-sm" id="addQuestion" rows="1" maxlength="500" placeholder="z.B. Beschreibe die Stunde in 3 Wörtern – oder die Aufgabe"></textarea></div>
+        <div class="col-md-2 offset-md-10 mb-2"><button class="btn btn-primary btn-sm btn-block" type="submit">Anlegen</button></div>
       </form>
     </div>
 
@@ -70,7 +83,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     <?php endif; ?>
     <div class="table-responsive">
       <table class="table table-striped">
-        <thead><tr><th>Lektion &amp; Feedback-Frage</th><th>Code</th><th>Link für diese Lektion</th><th>Auswertung</th><th style="width:1%"></th></tr></thead>
+        <thead><tr><th>Lektion, Antworttool &amp; Frage/Aufgabe</th><th>Code</th><th>Link für diese Lektion</th><th>Auswertung</th><th style="width:1%"></th></tr></thead>
         <tbody>
         <?php if (!$lessons): ?>
           <tr><td colspan="5" class="text-center text-muted">Noch keine Lektionen. Lege oben eine an.</td></tr>
@@ -81,7 +94,8 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
             <td style="min-width:260px">
               <?php if ($l['is_hidden']): ?><span class="badge badge-secondary mb-1">ausgeblendet</span><?php endif; ?>
               <input class="form-control form-control-sm edit-title mb-1" value="<?php echo h($l['title']); ?>" placeholder="Titel">
-              <input class="form-control form-control-sm edit-question" value="<?php echo h($l['feedback_question']); ?>" placeholder="Feedback-Frage (optional)">
+              <select class="form-control form-control-sm edit-formtype mb-1"><?php echo form_type_options($formTypes, $l['form_type']); ?></select>
+              <textarea class="form-control form-control-sm edit-question" rows="2" maxlength="500" placeholder="Frage / Aufgabe (optional)"><?php echo h($l['feedback_question']); ?></textarea>
             </td>
             <td><span class="code-chip"><?php echo h($l['code']); ?></span></td>
             <td>
@@ -132,7 +146,8 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
       <ul class="pl-3 mb-0">
         <li>Lege pro Unterrichtsstunde eine Lektion an (z.B. das Thema).</li>
         <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
-        <li>Die <strong>Feedback-Frage</strong> (optional) wird den Schülern im Feedback-Formular angezeigt – z.B. „Beschreibe die Stunde in 3 Wörtern" (ideal für die Wortwolke). Titel und Frage lassen sich jederzeit ändern und mit „Speichern" übernehmen.</li>
+        <li>Das <strong>Antworttool</strong> legt fest, was die Schüler über den Lektions-Link sehen: direkt das gewählte Formular statt der Auswahlseite. <strong>Feedback</strong> ist für Rückmeldungen zum Unterricht, <strong>Aufgabe</strong> für Antworten auf eine inhaltliche Aufgabe (ein Textfeld). Bei „Schüler wählen selbst" erscheint wie bisher die Auswahl.</li>
+        <li>Die <strong>Frage / Aufgabe</strong> (optional) steht über dem Eingabefeld – z.B. „Beschreibe die Stunde in 3 Wörtern" (Feedback, ideal für die Wortwolke) oder die Aufgabenstellung (Aufgabe). Sie geht auch an die KI-Auswertung. Alles lässt sich jederzeit ändern und mit „Speichern" übernehmen.</li>
         <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Sobald er fertig ist, erscheint hier ein Link „📄 Bericht ansehen" (falls dein Server das Web-Frontend anbietet). Schlägt die Auswertung fehl, steht hier „❌ fehlgeschlagen" mit dem Grund – dann einfach erneut anfordern.</li>
         <li><strong>Ausblenden</strong> nimmt die Lektion samt ihren Antworten aus Admin-Liste, Beamer und KI-Auswertung heraus – nichts geht verloren, mit „Einblenden" ist alles wieder da. Ausgeblendete Lektionen siehst du hier über die Checkbox; im Admin lassen sie sich weiterhin exportieren.</li>
         <li><strong>Löschen</strong> entfernt die Lektion <strong>und alle zugehörigen Antworten unwiderruflich</strong>.</li>
@@ -147,13 +162,13 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     function post(data){ return $.ajax({url:'lesson_manage.php', type:'POST', dataType:'json', headers:{'X-CSRF-TOKEN':csrf}, data:data}); }
 
     $('#addForm').on('submit', function(e){ e.preventDefault();
-      post({ action:'add', title:$('#addTitle').val(), question:$('#addQuestion').val() })
+      post({ action:'add', title:$('#addTitle').val(), question:$('#addQuestion').val(), form_type:$('#addFormType').val() })
         .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } })
         .fail(function(){ alert('Fehler.'); });
     });
     $('.act-save').on('click', function(){
       var tr=$(this).closest('tr');
-      post({ action:'edit', id:tr.data('id'), title:tr.find('.edit-title').val(), question:tr.find('.edit-question').val() })
+      post({ action:'edit', id:tr.data('id'), title:tr.find('.edit-title').val(), question:tr.find('.edit-question').val(), form_type:tr.find('.edit-formtype').val() })
         .done(function(r){ if(r.success){ location.reload(); } else { alert(r.message); } });
     });
     $('.act-del').on('click', function(){

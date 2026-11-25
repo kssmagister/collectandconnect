@@ -28,15 +28,16 @@ lessons    (id, teacher_id, code UNIQUE, title, feedback_question, created_at,
             analysis_requested, analysis_requested_at,
             last_report_url NULL, last_report_at NULL,   -- 008, siehe unten
             is_hidden TINYINT(1) DEFAULT 0,              -- 009, siehe unten
-            last_error NULL, last_error_at NULL)         -- 010
+            last_error NULL, last_error_at NULL,         -- 010
+            form_type NULL)                              -- 011: festes Antworttool
 submissions(id, teacher_id, lesson_id NULL, form_type, klasse, nickname NULL,
             payload JSON, created_at)
 login_attempts (id, ip, created_at)          -- Rate-Limit, legt login.php selbst an
 ```
 
-Migrationen 001–010 liegen in `migrations/` und sind **alle ausgeführt** (007 `teachers.classes`
+Migrationen 001–011 liegen in `migrations/` und sind **alle ausgeführt** (007 `teachers.classes`
 und 008 am 2026-10-21 in phpMyAdmin geprüft).
-`form_type`: `feedback` | `exit_ticket` | `strukturiert`; die typ-spezifischen Felder
+`form_type`: `feedback` | `aufgabe` | `exit_ticket` | `strukturiert`; die typ-spezifischen Felder
 stehen als JSON in `payload`.
 
 ✅ **008 (`last_report_url`/`last_report_at` auf `lessons`) ist ausgefuehrt** (in
@@ -54,6 +55,10 @@ auch ihre Antworten (vorher: nur Zuordnung lösen).
 phpMyAdmin). Fehlgeschlagene DRP-Auswertungen (`action=failed`) zeigt `lessons.php` als
 „❌ fehlgeschlagen“ mit Grund.
 
+
+⚠️ **011 (`lessons.form_type`) muss vor dem Deploy in phpMyAdmin ausgefuehrt werden** –
+`lessons.php`, `lesson_info.php` und `api_structured_data.php` nutzen die Spalte direkt.
+
 ---
 
 ## Kern-Konzepte
@@ -65,7 +70,13 @@ phpMyAdmin). Fehlgeschlagene DRP-Auswertungen (`action=failed`) zeigt `lessons.p
   `assets/common.js` liest die Codes, reicht sie an die Formularlinks weiter und zeigt
   einen Banner (Name/Lektion, via `teacher_info.php` / `lesson_info.php`).
   `submit.php` löst die Codes zu `teacher_id`/`lesson_id` auf.
-- **Neuer Fragetyp** = 1 HTML-Seite + 1 Eintrag in `$schemas` in `submit.php`. Sonst nichts.
+- **Neuer Fragetyp** = 1 HTML-Seite + Eintrag in `$schemas` (`submit.php`) + `form_types()`
+  (`db.php`) + `FORM_PAGES` (`assets/common.js`) + Labels in `admin.php`.
+- **Antworttool je Lektion:** `lessons.form_type` (NULL = Schüler wählen auf der Startseite).
+  Ist es gesetzt, leitet `assets/common.js` jeden Lektions-Link (`?t=…&l=…`) direkt auf das
+  Formular um. **Feedback** = Rückmeldung zum Unterricht, **Aufgabe** = Antwort auf eine
+  inhaltliche Aufgabe (ein Textfeld, payload `antwort`). Die „Frage / Aufgabe“ der Lektion
+  (`feedback_question`) steht über dem Eingabefeld und geht an die DRP.
 - **Klassen – einzige Quelle ist `all_classes()` in `db.php`.** Nirgends sonst eine
   Klassenliste pflegen! Verteilung:
   - Schüler-Formulare: `<select id="klasse">` enthält **nur** den Platzhalter;
@@ -89,7 +100,7 @@ phpMyAdmin). Fehlgeschlagene DRP-Auswertungen (`action=failed`) zeigt `lessons.p
 
 ```
 index.html                Landing (Kachelauswahl)
-feedback.html / exit_ticket.html / strukturiert.html   Schüler-Formulare
+feedback.html / aufgabe.html / exit_ticket.html / strukturiert.html   Schüler-Formulare
 submit.php                generischer Submit für alle Fragetypen
 login.html/.php, logout.php, check_login.php
 admin.php                 Admin (Filter, Statistik, Export, Löschen, Share-Link)
@@ -156,7 +167,7 @@ Authentifizierung per Header `X-API-Key` (= `PYTHON_API_KEY` in der `.env` von c
 
 | Endpunkt | Methode | Zweck |
 |---|---|---|
-| `api_structured_data.php` | GET | Rückmeldungen holen. Filter: `form_type`, `teacher` (Lehrer-Code), `lesson` (Lektions-Code), `since`, `limit`. Liefert u. a. `lesson_code`, `lesson_title`, `klasse`, `nickname`, `payload`, `text`, `created_at`. |
+| `api_structured_data.php` | GET | Rückmeldungen holen. Filter: `form_type`, `teacher` (Lehrer-Code), `lesson` (Lektions-Code), `since`, `limit`. Liefert u. a. `lesson_code`, `lesson_title`, `lesson_question`, `lesson_form_type`, `klasse`, `nickname`, `payload`, `text`, `created_at`. |
 | `api_analysis_queue.php` | GET | Offene Auswertungs-Anforderungen: `[{lesson_code, title, teacher_code}]`. |
 | `api_analysis_queue.php` | POST `action=done&lesson=CODE[&report_url=URL]` | Anforderung erledigt; optionale `report_url` (muss gültige URL sein, sonst ignoriert) landet in `lessons.last_report_url`/`last_report_at`. |
 | `api_analysis_queue.php` | POST `action=failed&lesson=CODE[&error=TEXT]` | Auswertung fehlgeschlagen: Markierung wird gelöscht (kein Endlos-Retry), Grund (max. 500 Zeichen) landet in `lessons.last_error`/`last_error_at` und wird in `lessons.php` angezeigt. `done` und neues Anfordern löschen den Fehler. |

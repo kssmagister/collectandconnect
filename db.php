@@ -92,3 +92,16 @@ function require_csrf(): void {
         exit;
     }
 }
+
+// Antworttools (Fragetypen) – einzige Quelle fuer Lektions-Auswahl und Validierung.
+// Schluessel = submissions.form_type / lessons.form_type, Wert = sichtbare Bezeichnung.
+// Neuer Fragetyp: hier eintragen + $schemas in submit.php + HTML-Seite + FORM_PAGES in
+// assets/common.js.
+function form_types(): array {
+    return [
+        'feedback'     => 'Feedback zum Unterricht',
+        'aufgabe'      => 'Aufgabe (ein Textfeld)',
+        'exit_ticket'  => 'Exit-Ticket',
+        'strukturiert' => 'Strukturierte Antwort (Was/Wann/Warum/Folgen)',
+    ];
+}

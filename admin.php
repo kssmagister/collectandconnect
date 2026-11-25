@@ -104,6 +104,7 @@ $classGroups = all_classes();
             <select class="form-control form-control-sm" id="filterType">
               <option value="">Alle Typen</option>
               <option value="feedback">Feedback</option>
+              <option value="aufgabe">Aufgabe</option>
               <option value="exit_ticket">Exit-Ticket</option>
               <option value="strukturiert">Strukturiert</option>
             </select>
@@ -191,9 +192,9 @@ $classGroups = all_classes();
   </div></div></div>
 
   <script>
-    const TYPE_LABELS = { feedback:'Feedback', exit_ticket:'Exit-Ticket', strukturiert:'Strukturiert' };
+    const TYPE_LABELS = { feedback:'Feedback', aufgabe:'Aufgabe', exit_ticket:'Exit-Ticket', strukturiert:'Strukturiert' };
     const FIELD_LABELS = {
-      text:'Feedback', erkenntnis:'Wichtigste Erkenntnis', frage:'Offene Frage',
+      text:'Feedback', antwort:'Antwort', erkenntnis:'Wichtigste Erkenntnis', frage:'Offene Frage',
       sicherheit:'Sicherheit', hilfe:'Was würde helfen',
       was:'Was', wann:'Wann', warum:'Warum', folgen:'Folgen', beispiel:'Beispiel/Quelle'
     };

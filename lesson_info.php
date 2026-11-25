@@ -1,6 +1,7 @@
 <?php
 // Oeffentlich: liefert den Lektionstitel zu einem Lektions-Code (fuer den
-// Banner auf den Schueler-Seiten).
+// Banner auf den Schueler-Seiten), dazu Frage/Aufgabe und das festgelegte
+// Antworttool (form_type; NULL = Schueler waehlen selbst).
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
@@ -10,14 +11,15 @@ if ($code === '') { echo json_encode(['success' => false]); exit; }
 
 try {
     $conn = db();
-    $stmt = $conn->prepare("SELECT title, feedback_question FROM lessons WHERE code = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT title, feedback_question, form_type FROM lessons WHERE code = ? LIMIT 1");
     $stmt->bind_param('s', $code);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     $conn->close();
     echo json_encode($row
-        ? ['success' => true, 'title' => $row['title'], 'question' => $row['feedback_question']]
+        ? ['success' => true, 'title' => $row['title'], 'question' => $row['feedback_question'],
+           'form_type' => $row['form_type']]
         : ['success' => false]);
 } catch (\Throwable $e) {
     echo json_encode(['success' => false]);

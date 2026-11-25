@@ -11,6 +11,12 @@ $conn = db();
 $me = current_teacher_id();
 $action = $_POST['action'] ?? '';
 
+// Antworttool aus dem Formular: nur bekannte Typen, sonst NULL (= Schueler waehlen selbst).
+function posted_form_type(): ?string {
+    $ft = trim($_POST['form_type'] ?? '');
+    return array_key_exists($ft, form_types()) ? $ft : null;
+}
+
 function gen_lesson_code(mysqli $conn): string {
     $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     do {
@@ -31,9 +37,10 @@ if ($action === 'add') {
         echo json_encode(['success' => false, 'message' => 'Titel noetig.']); exit;
     }
     $q = ($question === '') ? null : $question;
+    $ft = posted_form_type();
     $code = gen_lesson_code($conn);
-    $stmt = $conn->prepare("INSERT INTO lessons (teacher_id, code, title, feedback_question) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param('isss', $me, $code, $title, $q);
+    $stmt = $conn->prepare("INSERT INTO lessons (teacher_id, code, title, feedback_question, form_type) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param('issss', $me, $code, $title, $q, $ft);
     $ok = $stmt->execute();
     $stmt->close();
     echo json_encode($ok ? ['success' => true, 'code' => $code] : ['success' => false, 'message' => 'Fehler.']);
@@ -41,7 +48,7 @@ if ($action === 'add') {
 }
 
 if ($action === 'edit') {
-    // Titel und/oder Feedback-Frage aendern (nur eigene Lektion).
+    // Titel, Frage/Aufgabe und Antworttool aendern (nur eigene Lektion).
     $id       = (int) ($_POST['id'] ?? 0);
     $title    = trim($_POST['title'] ?? '');
     $question = trim($_POST['question'] ?? '');
@@ -49,8 +56,9 @@ if ($action === 'edit') {
         echo json_encode(['success' => false, 'message' => 'Titel noetig.']); exit;
     }
     $q = ($question === '') ? null : $question;
-    $stmt = $conn->prepare("UPDATE lessons SET title = ?, feedback_question = ? WHERE id = ? AND teacher_id = ?");
-    $stmt->bind_param('ssii', $title, $q, $id, $me);
+    $ft = posted_form_type();
+    $stmt = $conn->prepare("UPDATE lessons SET title = ?, feedback_question = ?, form_type = ? WHERE id = ? AND teacher_id = ?");
+    $stmt->bind_param('sssii', $title, $q, $ft, $id, $me);
     $ok = $stmt->execute();
     $stmt->close();
     echo json_encode($ok ? ['success' => true] : ['success' => false, 'message' => 'Fehler.']);

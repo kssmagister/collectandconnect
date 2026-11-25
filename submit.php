@@ -9,6 +9,7 @@ header('Content-Type: application/json');
 // Erlaubte Formulartypen und ihre Felder.
 $schemas = [
     'feedback'     => ['required' => ['text'],                              'optional' => []],
+    'aufgabe'      => ['required' => ['antwort'],                           'optional' => []],
     'exit_ticket'  => ['required' => ['erkenntnis', 'sicherheit'],          'optional' => ['frage', 'hilfe']],
     'strukturiert' => ['required' => ['was', 'wann', 'warum', 'folgen'],    'optional' => ['beispiel']],
 ];
