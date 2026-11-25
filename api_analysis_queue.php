@@ -3,6 +3,7 @@
 // Authentifizierung per API-Key (X-API-Key), wie api_structured_data.php.
 //   GET  -> Liste offener Anforderungen [{lesson_code, title, teacher_code}]
 //   POST action=done&lesson=CODE[&report_url=...] -> Anforderung als erledigt markieren
+//   POST action=failed&lesson=CODE[&error=...]     -> Anforderung fehlgeschlagen (Grund anzeigen)
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
@@ -32,13 +33,27 @@ try {
             }
             if ($reportUrl !== '') {
                 $stmt = $conn->prepare(
-                    "UPDATE lessons SET analysis_requested = 0, last_report_url = ?, last_report_at = NOW() WHERE code = ?"
+                    "UPDATE lessons SET analysis_requested = 0, last_report_url = ?, last_report_at = NOW(),
+                            last_error = NULL, last_error_at = NULL WHERE code = ?"
                 );
                 $stmt->bind_param('ss', $reportUrl, $lesson);
             } else {
-                $stmt = $conn->prepare("UPDATE lessons SET analysis_requested = 0 WHERE code = ?");
+                $stmt = $conn->prepare("UPDATE lessons SET analysis_requested = 0, last_error = NULL, last_error_at = NULL WHERE code = ?");
                 $stmt->bind_param('s', $lesson);
             }
+            $stmt->execute();
+            $stmt->close();
+            echo json_encode(['success' => true]);
+        } elseif ($action === 'failed' && $lesson !== '') {
+            // Auswertung fehlgeschlagen: Markierung loeschen (kein Endlos-Retry per Cron)
+            // und den Grund fuer die Anzeige in lessons.php speichern.
+            $error = trim($_POST['error'] ?? '');
+            if ($error === '') { $error = 'Unbekannter Fehler'; }
+            $error = mb_substr($error, 0, 500);
+            $stmt = $conn->prepare(
+                "UPDATE lessons SET analysis_requested = 0, last_error = ?, last_error_at = NOW() WHERE code = ?"
+            );
+            $stmt->bind_param('ss', $error, $lesson);
             $stmt->execute();
             $stmt->close();
             echo json_encode(['success' => true]);

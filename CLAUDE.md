@@ -27,13 +27,14 @@ teachers   (id, username UNIQUE, password_hash [bcrypt], name, code UNIQUE, is_a
 lessons    (id, teacher_id, code UNIQUE, title, feedback_question, created_at,
             analysis_requested, analysis_requested_at,
             last_report_url NULL, last_report_at NULL,   -- 008, siehe unten
-            is_hidden TINYINT(1) DEFAULT 0)              -- 009, siehe unten
+            is_hidden TINYINT(1) DEFAULT 0,              -- 009, siehe unten
+            last_error NULL, last_error_at NULL)         -- 010
 submissions(id, teacher_id, lesson_id NULL, form_type, klasse, nickname NULL,
             payload JSON, created_at)
 login_attempts (id, ip, created_at)          -- Rate-Limit, legt login.php selbst an
 ```
 
-Migrationen 001–008 liegen in `migrations/` und sind **alle ausgeführt** (007 `teachers.classes`
+Migrationen 001–010 liegen in `migrations/` und sind **alle ausgeführt** (007 `teachers.classes`
 und 008 am 2026-10-21 in phpMyAdmin geprüft).
 `form_type`: `feedback` | `exit_ticket` | `strukturiert`; die typ-spezifischen Felder
 stehen als JSON in `payload`.
@@ -48,6 +49,10 @@ Fallback – additive Migrationen immer *vor* dem Deploy ausfuehren.
 Lektionen + ihre Antworten fallen aus Admin-Liste, Beamer, DRP-API und Analyse-Queue heraus
 (der Lektions-Export im Admin findet sie weiterhin). „Löschen“ einer Lektion entfernt jetzt
 auch ihre Antworten (vorher: nur Zuordnung lösen).
+
+✅ **010 (`last_error`/`last_error_at` auf `lessons`) ist ausgefuehrt** (am 2026-11-25 in
+phpMyAdmin). Fehlgeschlagene DRP-Auswertungen (`action=failed`) zeigt `lessons.php` als
+„❌ fehlgeschlagen“ mit Grund.
 
 ---
 
@@ -154,6 +159,7 @@ Authentifizierung per Header `X-API-Key` (= `PYTHON_API_KEY` in der `.env` von c
 | `api_structured_data.php` | GET | Rückmeldungen holen. Filter: `form_type`, `teacher` (Lehrer-Code), `lesson` (Lektions-Code), `since`, `limit`. Liefert u. a. `lesson_code`, `lesson_title`, `klasse`, `nickname`, `payload`, `text`, `created_at`. |
 | `api_analysis_queue.php` | GET | Offene Auswertungs-Anforderungen: `[{lesson_code, title, teacher_code}]`. |
 | `api_analysis_queue.php` | POST `action=done&lesson=CODE[&report_url=URL]` | Anforderung erledigt; optionale `report_url` (muss gültige URL sein, sonst ignoriert) landet in `lessons.last_report_url`/`last_report_at`. |
+| `api_analysis_queue.php` | POST `action=failed&lesson=CODE[&error=TEXT]` | Auswertung fehlgeschlagen: Markierung wird gelöscht (kein Endlos-Retry), Grund (max. 500 Zeichen) landet in `lessons.last_error`/`last_error_at` und wird in `lessons.php` angezeigt. `done` und neues Anfordern löschen den Fehler. |
 
 **Ablauf:** Lehrperson klickt in `lessons.php` „KI-Auswertung anfordern" (`lessons.analysis_requested=1`)
 → DRP fragt per Cron (alle 5 Min., Pull – der Heimserver ist von aussen nicht erreichbar) die Queue ab
@@ -161,7 +167,7 @@ Authentifizierung per Header `X-API-Key` (= `PYTHON_API_KEY` in der `.env` von c
 (Link zeigt auf `DRP_WEB_BASE_URL`, nur im Heimnetz erreichbar).
 
 **Voraussetzungen im Schema (collectandconnect-Migrationen):** `005` Queue-Spalten auf `lessons`,
-`008` `lessons.last_report_url`/`last_report_at`. `lessons.php` selektiert diese Spalten direkt, ohne
+`008` `lessons.last_report_url`/`last_report_at`, `010` `lessons.last_error`/`last_error_at`. `lessons.php` selektiert diese Spalten direkt, ohne
 Fallback.
 
 **Bei Änderungen an der Schnittstelle (Reihenfolge):**

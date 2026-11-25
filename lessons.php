@@ -12,6 +12,7 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'ht
 $conn = db();
 $lessons = [];
 $stmt = $conn->prepare("SELECT l.id, l.code, l.title, l.feedback_question, l.created_at, l.analysis_requested, l.last_report_url, l.last_report_at, l.is_hidden,
+                               l.last_error, l.last_error_at,
                                (SELECT COUNT(*) FROM submissions s WHERE s.lesson_id = l.id) AS n
                         FROM lessons l WHERE l.teacher_id = ? ORDER BY l.is_hidden ASC, l.created_at DESC");
 $stmt->bind_param('i', $me);
@@ -90,6 +91,17 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
             <td>
               <?php if (!empty($l['analysis_requested'])): ?>
                 <span class="badge badge-warning">⏳ angefordert</span>
+              <?php elseif (!empty($l['last_error'])): ?>
+                <span class="badge badge-danger" title="<?php echo h($l['last_error']); ?>">❌ fehlgeschlagen</span>
+                <div class="text-muted" style="font-size:11px; max-width:260px;">
+                  <?php echo h($l['last_error']); ?>
+                  <?php if ($l['last_error_at']): ?>(<?php echo h(date('d.m.Y H:i', strtotime($l['last_error_at']))); ?>)<?php endif; ?>
+                </div>
+                <?php if (!empty($l['last_report_url'])): ?>
+                  <a href="<?php echo h($l['last_report_url']); ?>" target="_blank" rel="noopener"
+                     class="btn btn-link btn-sm p-0">📄 älterer Bericht</a>
+                <?php endif; ?>
+                <button class="btn btn-link btn-sm p-0 act-req">erneut anfordern</button>
               <?php elseif (!empty($l['last_report_url'])): ?>
                 <a href="<?php echo h($l['last_report_url']); ?>" target="_blank" rel="noopener"
                    class="btn btn-outline-success btn-sm">📄 Bericht ansehen</a>
@@ -121,7 +133,7 @@ function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
         <li>Lege pro Unterrichtsstunde eine Lektion an (z.B. das Thema).</li>
         <li>Teile den <strong>Lektions-Link</strong> mit deiner Klasse (statt des allgemeinen Links). Antworten werden dann dieser Lektion zugeordnet.</li>
         <li>Die <strong>Feedback-Frage</strong> (optional) wird den Schülern im Feedback-Formular angezeigt – z.B. „Beschreibe die Stunde in 3 Wörtern" (ideal für die Wortwolke). Titel und Frage lassen sich jederzeit ändern und mit „Speichern" übernehmen.</li>
-        <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Sobald er fertig ist, erscheint hier ein Link „📄 Bericht ansehen" (falls dein Server das Web-Frontend anbietet).</li>
+        <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Sobald er fertig ist, erscheint hier ein Link „📄 Bericht ansehen" (falls dein Server das Web-Frontend anbietet). Schlägt die Auswertung fehl, steht hier „❌ fehlgeschlagen" mit dem Grund – dann einfach erneut anfordern.</li>
         <li><strong>Ausblenden</strong> nimmt die Lektion samt ihren Antworten aus Admin-Liste, Beamer und KI-Auswertung heraus – nichts geht verloren, mit „Einblenden" ist alles wieder da. Ausgeblendete Lektionen siehst du hier über die Checkbox; im Admin lassen sie sich weiterhin exportieren.</li>
         <li><strong>Löschen</strong> entfernt die Lektion <strong>und alle zugehörigen Antworten unwiderruflich</strong>.</li>
       </ul>
