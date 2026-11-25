@@ -1,13 +1,29 @@
 <?php
-// Beamer-/Praesentationsansicht fuer Feedback: Karten ODER Wortwolke.
+// Beamer-/Praesentationsansicht fuer Feedback- ODER Aufgaben-Antworten: Karten ODER Wortwolke.
 // Login-geschuetzt (nur die Lehrperson zeigt das im Klassenzimmer).
+// Parameter (alle optional): ?klasse=..., ?type=feedback|aufgabe, ?lesson=ID
+// Mit ?lesson und festem Antworttool der Lektion ergibt sich der Typ automatisch.
 require_once __DIR__ . '/db.php';
 if (empty($_SESSION['loggedin'])) { header('Location: login.html'); exit; }
 $initialKlasse = isset($_GET['klasse']) ? (string) $_GET['klasse'] : '';
+$initialLesson = isset($_GET['lesson']) ? (int) $_GET['lesson'] : 0;
+$initialType   = (isset($_GET['type']) && $_GET['type'] === 'aufgabe') ? 'aufgabe' : '';
 
-// Persoenliche Klassenauswahl (leer = alle Klassen)
+// Persoenliche Klassenauswahl (leer = alle Klassen) + eigene (sichtbare) Lektionen
 $conn = db();
-$myClasses = teacher_classes($conn, current_teacher_id());
+$me = current_teacher_id();
+$myClasses = teacher_classes($conn, $me);
+$lessons = [];
+$ls = $conn->prepare("SELECT id, title, form_type, feedback_question FROM lessons
+                      WHERE teacher_id = ? AND is_hidden = 0 ORDER BY created_at DESC");
+$ls->bind_param('i', $me);
+$ls->execute();
+$res = $ls->get_result();
+while ($row = $res->fetch_assoc()) {
+    $lessons[] = ['id' => (int) $row['id'], 'title' => $row['title'],
+                  'form_type' => $row['form_type'], 'question' => $row['feedback_question']];
+}
+$ls->close();
 $conn->close();
 $classGroups = all_classes();
 ?>
@@ -16,7 +32,7 @@ $classGroups = all_classes();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feedback – Beamer-Ansicht</title>
+  <title>Beamer-Ansicht – KSS COLLECT &amp; CONNECT</title>
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
@@ -60,11 +76,28 @@ $classGroups = all_classes();
       color:#6c757d; font-size:1.25rem; text-align:center; padding:2rem; pointer-events:none;
     }
     :fullscreen .fb-text { font-size:1.6rem; }
+    #questionBar {
+      flex:0 0 auto; background:#e8f4f8; border-bottom:3px solid #17a2b8;
+      padding:0.8rem 1.25rem; font-size:1.3rem; line-height:1.45; color:#212529; white-space:pre-wrap;
+    }
+    #questionBar .q-label { font-weight:700; color:#117a8b; margin-right:0.4rem; }
+    :fullscreen #questionBar { font-size:1.55rem; }
+    .topbar select.lesson-sel { max-width:260px; }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <h1>💬 Feedback</h1>
+    <h1 id="viewTitle">💬 Feedback</h1>
+
+    <div class="btn-group btn-group-toggle btn-group-sm" role="group">
+      <button id="typeFeedback" class="btn btn-light active">💬 Feedback</button>
+      <button id="typeAufgabe" class="btn btn-outline-light">✍️ Aufgabe</button>
+    </div>
+
+    <select id="lesson" class="form-control form-control-sm lesson-sel">
+      <option value="">Alle Lektionen</option>
+      <?php foreach ($lessons as $l): ?><option value="<?php echo (int) $l['id']; ?>"><?php echo htmlspecialchars((string) $l['title'], ENT_QUOTES); ?></option><?php endforeach; ?>
+    </select>
 
     <div class="btn-group btn-group-toggle btn-group-sm" role="group">
       <button id="modeCards" class="btn btn-light active">Karten</button>
@@ -93,16 +126,29 @@ $classGroups = all_classes();
     </div>
   </div>
 
+  <div id="questionBar" style="display:none;"><span class="q-label" id="qLabel">Aufgabe:</span><span id="qText"></span></div>
+
   <div id="content">
     <div id="grid"></div>
     <div id="cloudWrap" style="display:none;"><canvas id="cloud"></canvas></div>
-    <div id="empty">Noch kein Feedback für diese Auswahl.</div>
+    <div id="empty">Noch keine Einträge für diese Auswahl.</div>
   </div>
 
   <script>
     var initialKlasse = <?php echo json_encode($initialKlasse, JSON_UNESCAPED_UNICODE); ?>;
+    var initialLesson = <?php echo (int) $initialLesson; ?>;
+    var initialType   = <?php echo json_encode($initialType); ?>;
+    var LESSONS = <?php echo json_encode($lessons, JSON_UNESCAPED_UNICODE); ?>;
     var entries = [];
-    var mode = 'cards'; // 'cards' | 'cloud'
+    var mode = 'cards';     // 'cards' | 'cloud'
+    var type = 'feedback';  // 'feedback' | 'aufgabe' (= submissions.form_type)
+
+    function lessonById(id){ return LESSONS.find(function(l){ return String(l.id) === String(id); }) || null; }
+    // Antworttext je Typ (Feedback: payload.text, Aufgabe: payload.antwort)
+    function entryText(e){
+      var p = e.payload || {};
+      return (type === 'aufgabe' ? p.antwort : p.text) || '';
+    }
 
     // Haeufige deutsche Fuellwoerter, die in der Wolke nichts aussagen.
     var STOP = new Set(("und oder aber dass weil denn der die das den dem des ein eine einen einem "
@@ -126,9 +172,11 @@ $classGroups = all_classes();
     }
 
     function load(){
-      var p = { form_type:'feedback' };
+      var p = { form_type:type };
       var k = $('#klasse').val();
       if(k) p.klasse = k;
+      var lid = $('#lesson').val();
+      if(lid) p.lessons = lid;
       $.getJSON('getSubmissions.php', p)
         .done(function(resp){
           if(!resp.success) return;
@@ -154,7 +202,7 @@ $classGroups = all_classes();
       var grid = $('#grid').empty();
       $('#empty').css('display', entries.length ? 'none' : 'flex');
       entries.forEach(function(e){
-        var text = (e.payload && e.payload.text) ? e.payload.text : '';
+        var text = entryText(e);
         var card = $('<div class="fb-card">');
         card.append('<div class="fb-text">' + esc(text) + '</div>');
         card.append('<div class="fb-foot"><span class="fb-badges"><span class="badge-class">' + esc(e.klasse) + '</span>'
@@ -164,11 +212,11 @@ $classGroups = all_classes();
       });
     }
 
-    // Woerter aus allen Feedback-Texten zaehlen (ohne Fuellwoerter).
+    // Woerter aus allen Antworttexten zaehlen (ohne Fuellwoerter).
     function wordFrequencies(){
       var counts = {};
       entries.forEach(function(e){
-        var text = (e.payload && e.payload.text) ? e.payload.text : '';
+        var text = entryText(e);
         text.toLowerCase().split(/[^a-zäöüß]+/).forEach(function(w){
           if(w.length < 3 || STOP.has(w)) return;
           counts[w] = (counts[w] || 0) + 1;
@@ -226,6 +274,36 @@ $classGroups = all_classes();
       $('#modeCloud').toggleClass('btn-light active', m==='cloud').toggleClass('btn-outline-light', m!=='cloud');
       render();
     }
+    // Typ (Feedback/Aufgabe) umschalten: Titel, Knoepfe, Frage-Leiste, Daten neu laden
+    function setType(t, reload){
+      type = (t === 'aufgabe') ? 'aufgabe' : 'feedback';
+      $('#typeFeedback').toggleClass('btn-light active', type==='feedback').toggleClass('btn-outline-light', type!=='feedback');
+      $('#typeAufgabe').toggleClass('btn-light active', type==='aufgabe').toggleClass('btn-outline-light', type!=='aufgabe');
+      $('#viewTitle').text(type === 'aufgabe' ? '✍️ Aufgabe' : '💬 Feedback');
+      updateQuestion();
+      if(reload !== false) load();
+    }
+    // Frage/Aufgabe der gewaehlten Lektion gross ueber den Karten zeigen
+    function updateQuestion(){
+      var l = lessonById($('#lesson').val());
+      var q = l && l.question ? l.question : '';
+      $('#qLabel').text(type === 'aufgabe' ? 'Aufgabe:' : 'Frage:');
+      $('#qText').text(q);
+      $('#questionBar').toggle(!!q);
+      if(mode === 'cloud'){ onResize(); }
+    }
+    $('#typeFeedback').on('click', function(){ setType('feedback'); });
+    $('#typeAufgabe').on('click', function(){ setType('aufgabe'); });
+    $('#lesson').on('change', function(){
+      // Lektion mit festem Antworttool Feedback/Aufgabe -> Typ automatisch passend
+      var l = lessonById(this.value);
+      if(l && (l.form_type === 'feedback' || l.form_type === 'aufgabe') && l.form_type !== type){
+        setType(l.form_type);
+      } else {
+        updateQuestion(); load();
+      }
+    });
+
     $('#modeCards').on('click', function(){ setMode('cards'); });
     $('#modeCloud').on('click', function(){ setMode('cloud'); });
 
@@ -244,6 +322,13 @@ $classGroups = all_classes();
     document.addEventListener('fullscreenchange', onResize);
 
     if(initialKlasse){ $('#klasse').val(initialKlasse); }
+    var startType = initialType;
+    if(initialLesson && lessonById(initialLesson)){
+      $('#lesson').val(String(initialLesson));
+      var il = lessonById(initialLesson);
+      if(!startType && il.form_type === 'aufgabe'){ startType = 'aufgabe'; }
+    }
+    setType(startType || 'feedback', false);
     load();
     setInterval(load, 25000); // alle 25 s automatisch aktualisieren
   </script>

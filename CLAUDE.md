@@ -104,7 +104,7 @@ feedback.html / aufgabe.html / exit_ticket.html / strukturiert.html   Schüler-F
 submit.php                generischer Submit für alle Fragetypen
 login.html/.php, logout.php, check_login.php
 admin.php                 Admin (Filter, Statistik, Export, Löschen, Share-Link)
-feedback_view.php         Beamer-Ansicht: Karten (einspaltig) + Wortwolke (wordcloud2 CDN)
+feedback_view.php         Beamer-Ansicht Feedback/Aufgabe: Karten + Wortwolke (wordcloud2 CDN), ?type=&lesson=&klasse=
 lessons.php / lesson_manage.php / lesson_info.php      Lektionen + Feedback-Frage
 classes.php / class_manage.php                         persoenliche Klassenauswahl
 teachers.php / teacher_manage.php / teacher_info.php   Konten (nur Admin)

@@ -66,7 +66,7 @@ $classGroups = all_classes();
         <a href="lessons.php" class="btn btn-info btn-sm">Lektionen</a>
         <a href="classes.php" class="btn btn-outline-info btn-sm">Meine Klassen</a>
         <?php if ($isAdmin): ?><a href="teachers.php" class="btn btn-dark btn-sm">Konten verwalten</a><?php endif; ?>
-        <button id="beamerBtn" class="btn btn-secondary btn-sm">🖥 Beamer (Feedback)</button>
+        <button id="beamerBtn" class="btn btn-secondary btn-sm">🖥 Beamer</button>
         <button id="exportCSV" class="btn btn-success btn-sm">CSV</button>
         <button id="exportJSON" class="btn btn-info btn-sm">JSON</button>
         <button id="clearBtn" class="btn btn-warning btn-sm">Löschen</button>
@@ -183,7 +183,7 @@ $classGroups = all_classes();
         <li>Du siehst <strong>nur deine eigenen</strong> Antworten.</li>
         <li><strong>Dein Link für Schüler</strong> steht oben — teile ihn (z.B. per QR-Code/Beamer). Nur darüber landen Antworten bei dir.</li>
         <li><strong>Filter</strong> nach Typ/Klasse/Nickname; die Statistik zeigt u.a. die Ø-Sicherheit der Exit-Tickets.</li>
-        <li><strong>🖥 Beamer (Feedback)</strong> öffnet die Präsentationsansicht (Karten oder Wortwolke, Vollbild).</li>
+        <li><strong>🖥 Beamer</strong> öffnet die Präsentationsansicht für Feedback oder Aufgaben-Antworten (Karten oder Wortwolke, Vollbild; filterbar nach Klasse und Lektion).</li>
         <li>Im Kasten <strong>Lektionen exportieren / löschen</strong> wählst du einzelne Lektionen und lädst sie als CSV/JSON/Markdown herunter oder löschst ihre Antworten (die Lektion selbst bleibt).</li>
         <li><strong>CSV/JSON</strong> oben exportiert die aktuelle Auswahl; <strong>Löschen</strong> entfernt deine Einträge (nur den gewählten Typ, falls gefiltert).</li>
         <?php if ($isAdmin): ?><li><strong>Konten verwalten</strong> (nur Admin): weitere Lehrpersonen anlegen — jede mit eigenem Login und eigenem Link.</li><?php endif; ?>
@@ -205,10 +205,14 @@ $classGroups = all_classes();
 
     $('#logoutBtn').on('click', function(){ $.post('logout.php', function(){ window.location.href='login.html'; }); });
 
-    // Beamer-Ansicht (Feedback) im neuen Tab, mit aktuell gewaehltem Klassenfilter
+    // Beamer-Ansicht im neuen Tab, mit aktuell gewaehltem Klassen- und Typfilter
     $('#beamerBtn').on('click', function(){
+      var q = new URLSearchParams();
       var k = $('#filterClass').val();
-      window.open('feedback_view.php' + (k ? ('?klasse=' + encodeURIComponent(k)) : ''), '_blank');
+      if(k) q.set('klasse', k);
+      if($('#filterType').val() === 'aufgabe') q.set('type', 'aufgabe');
+      var s = q.toString();
+      window.open('feedback_view.php' + (s ? ('?' + s) : ''), '_blank');
     });
 
     // Persoenlichen Link kopieren

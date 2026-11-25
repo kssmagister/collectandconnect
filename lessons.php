@@ -129,6 +129,10 @@ function form_type_options(array $formTypes, ?string $selected): string {
             </td>
             <td class="text-nowrap">
               <button class="btn btn-outline-primary btn-sm act-save">Speichern</button>
+              <?php if (in_array($l['form_type'], [null, 'feedback', 'aufgabe'], true)): ?>
+                <a class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener"
+                   href="feedback_view.php?lesson=<?php echo (int) $l['id']; ?><?php echo $l['form_type'] === 'aufgabe' ? '&type=aufgabe' : ''; ?>">🖥 Beamer</a>
+              <?php endif; ?>
               <button class="btn btn-outline-secondary btn-sm act-hide" data-hidden="<?php echo $l['is_hidden'] ? 0 : 1; ?>"><?php echo $l['is_hidden'] ? 'Einblenden' : 'Ausblenden'; ?></button>
               <button class="btn btn-outline-danger btn-sm act-del">Löschen</button>
             </td>
@@ -149,6 +153,7 @@ function form_type_options(array $formTypes, ?string $selected): string {
         <li>Das <strong>Antworttool</strong> legt fest, was die Schüler über den Lektions-Link sehen: direkt das gewählte Formular statt der Auswahlseite. <strong>Feedback</strong> ist für Rückmeldungen zum Unterricht, <strong>Aufgabe</strong> für Antworten auf eine inhaltliche Aufgabe (ein Textfeld). Bei „Schüler wählen selbst" erscheint wie bisher die Auswahl.</li>
         <li>Die <strong>Frage / Aufgabe</strong> (optional) steht über dem Eingabefeld – z.B. „Beschreibe die Stunde in 3 Wörtern" (Feedback, ideal für die Wortwolke) oder die Aufgabenstellung (Aufgabe). Sie geht auch an die KI-Auswertung. Alles lässt sich jederzeit ändern und mit „Speichern" übernehmen.</li>
         <li><strong>KI-Auswertung anfordern</strong> markiert die Lektion – dein Auswertungs-Server holt sie ab (i.d.R. wenige Minuten) und legt den Bericht in deinem Ordner ab. Sobald er fertig ist, erscheint hier ein Link „📄 Bericht ansehen" (falls dein Server das Web-Frontend anbietet). Schlägt die Auswertung fehl, steht hier „❌ fehlgeschlagen" mit dem Grund – dann einfach erneut anfordern.</li>
+        <li><strong>🖥 Beamer</strong> zeigt die Antworten dieser Lektion als Karten oder Wortwolke – bei „Aufgabe" mit der Aufgabenstellung darüber.</li>
         <li><strong>Ausblenden</strong> nimmt die Lektion samt ihren Antworten aus Admin-Liste, Beamer und KI-Auswertung heraus – nichts geht verloren, mit „Einblenden" ist alles wieder da. Ausgeblendete Lektionen siehst du hier über die Checkbox; im Admin lassen sie sich weiterhin exportieren.</li>
         <li><strong>Löschen</strong> entfernt die Lektion <strong>und alle zugehörigen Antworten unwiderruflich</strong>.</li>
       </ul>
